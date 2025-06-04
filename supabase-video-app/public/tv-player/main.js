@@ -33,3 +33,4 @@ const getTodayVideo = async () => {
 }
 
 getTodayVideo()
+console.log('Versión 2')
