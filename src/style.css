@@ -184,3 +184,12 @@ button:hover {
 #status.error {
   color: red;
 }
+
+.video-item {
+  display: flex;
+  align-items: center;
+  margin: 5px 0;
+}
+.video-item input {
+  margin-right: 10px;
+}
