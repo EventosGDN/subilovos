@@ -12,6 +12,45 @@ document.addEventListener('DOMContentLoaded', () => {
   const progressContainer = document.getElementById('progressContainer')
   const progressBar = document.getElementById('progressBar')
   const status = document.getElementById('status')
+  const videoList = document.getElementById('videoList')
+  const deleteBtn = document.getElementById('deleteBtn')
+  const deleteStatus = document.getElementById('deleteStatus')
+
+  const fetchVideoList = async () => {
+    const { data, error } = await supabase.storage.from('videos').list('temporales')
+    if (!error && data) {
+      videoList.innerHTML = ''
+      data.forEach(item => {
+        const div = document.createElement('div')
+        div.className = 'video-item'
+        const checkbox = document.createElement('input')
+        checkbox.type = 'checkbox'
+        checkbox.value = item.name
+
+        const timestamp = item.created_at
+          ? new Date(item.created_at).toLocaleString()
+          : 'Fecha desconocida'
+
+        div.appendChild(checkbox)
+        div.appendChild(
+          document.createTextNode(`${item.name} (${timestamp})`)
+        )
+        videoList.appendChild(div)
+      })
+    }
+  }
+
+  deleteBtn.addEventListener('click', async () => {
+    const checked = [...videoList.querySelectorAll('input:checked')]
+    const files = checked.map(cb => `temporales/${cb.value}`)
+    const { error } = await supabase.storage.from('videos').remove(files)
+    if (!error) {
+      deleteStatus.textContent = `${files.length} video(s) eliminados.`
+      fetchVideoList()
+    } else {
+      deleteStatus.textContent = 'Error al eliminar.'
+    }
+  })
 
   uploadBtn.addEventListener('click', async () => {
     const file = document.getElementById('videoInput').files[0]
@@ -30,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
       progressContainer.style.display = 'block'
       progressBar.style.width = '0%'
 
-      // Subida (sin barra real, simula con 100%)
       const { error: uploadError } = await supabase.storage
         .from('videos')
         .upload(filePath, file)
@@ -49,9 +87,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (insertError) throw insertError
 
       status.textContent = '✅ Video subido y registrado correctamente.'
+      fetchVideoList()
     } catch (err) {
       status.textContent = `❌ Error: ${err.message}`
       progressContainer.style.display = 'none'
     }
   })
+
+  fetchVideoList()
 })
