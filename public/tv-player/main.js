@@ -27,6 +27,8 @@ const getTodayVideos = async () => {
     playlist = ['/tv-player/videos/backup/tomas_v7.mp4']
   } else {
     playlist = data.map(v => v.url)
+console.log('Videos cargados:', playlist)
+
   }
 
   playCurrent()
