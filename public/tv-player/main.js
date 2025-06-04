@@ -9,7 +9,10 @@ const videoElement = document.getElementById('videoPlayer')
 videoElement.muted = true
 videoElement.volume = 1.0
 
-async function playVideos() {
+let playlist = []
+let currentIndex = 0
+
+const getTodayVideos = async () => {
   const today = new Date().toISOString().split('T')[0]
 
   const { data, error } = await supabase
@@ -17,27 +20,30 @@ async function playVideos() {
     .select('*')
     .lte('start_date', today)
     .gte('end_date', today)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: true })
 
-  let currentIndex = 0
-
-  const playNext = () => {
-    if (!data || data.length === 0) {
-      console.warn("No hay videos programados para hoy. Cargando respaldo.")
-      videoElement.src = './videos/backup/tomas_v7.mp4'
-    } else {
-      videoElement.src = data[currentIndex].url
-      currentIndex = (currentIndex + 1) % data.length
-    }
-
-    videoElement.play().catch(err => {
-      console.error("Error al reproducir:", err)
-    })
+  if (error || !data || data.length === 0) {
+    console.warn("No hay videos programados. Cargando respaldo.")
+    playlist = ['/tv-player/videos/backup/tomas_v7.mp4']
+  } else {
+    playlist = data.map(v => v.url)
   }
 
-  videoElement.addEventListener('ended', playNext)
-  playNext()
+  playCurrent()
 }
 
-playVideos()
-console.log('TV Player versión compatible')
+const playCurrent = () => {
+  if (playlist.length === 0) return
+
+  videoElement.src = playlist[currentIndex]
+  videoElement.play().catch(err => {
+    console.error("Error al reproducir:", err)
+  })
+}
+
+videoElement.addEventListener('ended', () => {
+  currentIndex = (currentIndex + 1) % playlist.length
+  playCurrent()
+})
+
+getTodayVideos()
