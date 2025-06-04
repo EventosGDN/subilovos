@@ -21,26 +21,29 @@
   </style>
 </head>
 <body>
-  <video id="videoPlayer" autoplay muted loop>
-    <source src="https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/1749068944185_VID-20210303-WA0007.mp4" type="video/mp4" />
-    <source src="https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/1749069421397_1000218709.mp4" type="video/mp4" />
-  </video>
+  <video id="videoPlayer" autoplay muted loop></video>
   <script>
     (function() {
       var video = document.getElementById('videoPlayer');
-      var sources = video.getElementsByTagName('source');
+      var playlist = [
+        'https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/1749068944185_VID-20210303-WA0007.mp4',
+        'https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/1749069421397_1000218709.mp4'
+      ];
       var index = 0;
 
-      function playNext() {
-        index = (index + 1) % sources.length;
-        video.src = sources[index].src;
+      function play(index) {
+        video.src = playlist[index];
         video.load();
-        video.play();
+        video.play().catch(console.error);
       }
 
-      video.addEventListener('ended', playNext);
+      video.addEventListener('ended', function() {
+        index = (index + 1) % playlist.length;
+        play(index);
+      });
+
       video.volume = 1.0;
-      video.play();
+      play(index);
     })();
   </script>
 </body>
