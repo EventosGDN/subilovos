@@ -24,7 +24,7 @@ const getTodayVideo = async () => {
 
   if (error || !data || data.length === 0) {
     // No hay video válido → cargar respaldo
-    videoElement.src = 'videos/backup/tomas_v7.mp4'
+    videoElement.src = '/tv-player/backup/tomas_v7.mp4'
   } else {
     videoElement.src = data[0].url
   }
