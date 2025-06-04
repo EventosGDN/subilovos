@@ -3,15 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reproductor TV</title>
-  <link rel="manifest" href="manifest.json" />
-
+  <title>TV Player</title>
+  <link rel="manifest" href="/tv-player/manifest.json" />
   <style>
-    body, html {
+    html, body {
       margin: 0;
       padding: 0;
-      background: #000;
       height: 100%;
+      background-color: black;
       overflow: hidden;
     }
     video {
@@ -20,19 +19,9 @@
       object-fit: cover;
     }
   </style>
-  <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(() => console.log('SW registrado'))
-      .catch(err => console.error('Error SW:', err))
-  }
-</script>
-
 </head>
 <body>
   <video id="videoPlayer" autoplay muted loop></video>
-
   <script type="module" src="/tv-player/main.js"></script>
-
 </body>
 </html>
