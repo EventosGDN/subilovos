@@ -8,7 +8,7 @@ const supabase = createClient(
 )
 
 const videoElement = document.getElementById('videoPlayer')
-videoElement.muted = false
+videoElement.muted = true
 videoElement.volume = 1.0
 
 const getTodayVideo = async () => {
