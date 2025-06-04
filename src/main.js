@@ -42,8 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   deleteBtn.addEventListener('click', async () => {
     const checked = [...videoList.querySelectorAll('input:checked')]
-    const files = checked.map(cb => `temporales/${cb.value}`)
-    const { error } = await supabase.storage.from('videos').remove(files)
+    const files = checked.map(cb => ({ path: `temporales/${cb.value}` }))
+const { error } = await supabase.storage.from('videos').remove(files)
+
     if (!error) {
       deleteStatus.textContent = `${files.length} video(s) eliminados.`
       fetchVideoList()
