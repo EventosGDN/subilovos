@@ -5,9 +5,12 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 )
 
+// ... Supabase init igual
+
 document.addEventListener('DOMContentLoaded', () => {
   const uploadBtn = document.getElementById('uploadBtn')
-  if (!uploadBtn) return
+  const progressContainer = document.getElementById('progressContainer')
+  const progressBar = document.getElementById('progressBar')
 
   uploadBtn.addEventListener('click', async () => {
     const file = document.getElementById('videoInput').files[0]
@@ -21,13 +24,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const filePath = `temporales/${Date.now()}_${file.name}`
+    status.textContent = 'Subiendo...'
+    progressContainer.style.display = 'block'
+    progressBar.style.width = '0%'
 
     try {
-      status.textContent = 'Subiendo...'
-
       const { error: uploadError } = await supabase.storage
         .from('videos')
-        .upload(filePath, file)
+        .upload(filePath, file, {
+          upsert: false,
+          // seguimiento de progreso personalizado (con workaround)
+          onUploadProgress: (event) => {
+            const percent = (event.loaded / event.total) * 100
+            progressBar.style.width = percent.toFixed(0) + '%'
+          }
+        })
 
       if (uploadError) throw uploadError
 
@@ -35,19 +46,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const url = data.publicUrl
 
       const { error: insertError } = await supabase.from('videos').insert([
-        {
-          name: file.name,
-          url,
-          start_date: start,
-          end_date: end,
-        },
+        { name: file.name, url, start_date: start, end_date: end },
       ])
 
       if (insertError) throw insertError
 
-      status.textContent = 'Video subido y registrado correctamente.'
+      status.textContent = '✅ Subido correctamente'
+      progressBar.style.width = '100%'
     } catch (err) {
-      status.textContent = `Error: ${err.message}`
+      status.textContent = `❌ Error: ${err.message}`
+      progressContainer.style.display = 'none'
     }
   })
 })

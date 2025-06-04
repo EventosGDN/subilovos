@@ -1,20 +1,19 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Subir video</title>
-</head>
 <body>
-  <h2>Subir video a Supabase</h2>
-  <input type="file" id="videoInput" accept="video/*" /><br />
-  <label>Inicio:</label>
-  <input type="date" id="startDate" /><br />
-  <label>Fin:</label>
-  <input type="date" id="endDate" /><br />
-  <button id="uploadBtn">Subir</button>
-  <p id="status"></p>
+  <div class="container">
+    <h2>Subir video a Supabase</h2>
+    <input type="file" id="videoInput" accept="video/*" />
+    <label>Inicio:</label>
+    <input type="date" id="startDate" />
+    <label>Fin:</label>
+    <input type="date" id="endDate" />
+    <button id="uploadBtn">Subir</button>
+
+    <div id="progressContainer">
+      <div id="progressBar"></div>
+    </div>
+
+    <p id="status"></p>
+  </div>
 
   <script type="module" src="/src/main.js"></script>
 </body>
-</html>
