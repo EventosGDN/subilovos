@@ -1,24 +1,54 @@
-import './style.css'
-import javascriptLogo from './javascript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.js'
+import { createClient } from '@supabase/supabase-js'
 
-document.querySelector('#app').innerHTML = `
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank">
-      <img src="${javascriptLogo}" class="logo vanilla" alt="JavaScript logo" />
-    </a>
-    <h1>Hello Vite!</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite logo to learn more
-    </p>
-  </div>
-`
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+)
 
-setupCounter(document.querySelector('#counter'))
+document.addEventListener('DOMContentLoaded', () => {
+  const uploadBtn = document.getElementById('uploadBtn')
+  if (!uploadBtn) return
+
+  uploadBtn.addEventListener('click', async () => {
+    const file = document.getElementById('videoInput').files[0]
+    const start = document.getElementById('startDate').value
+    const end = document.getElementById('endDate').value
+    const status = document.getElementById('status')
+
+    if (!file || !start || !end) {
+      status.textContent = 'Completá todos los campos.'
+      return
+    }
+
+    const filePath = `temporales/${Date.now()}_${file.name}`
+
+    try {
+      status.textContent = 'Subiendo...'
+
+      const { error: uploadError } = await supabase.storage
+        .from('videos')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
+      const url = data.publicUrl
+
+      const { error: insertError } = await supabase.from('videos').insert([
+        {
+          name: file.name,
+          url,
+          start_date: start,
+          end_date: end,
+        },
+      ])
+
+      if (insertError) throw insertError
+
+      status.textContent = 'Video subido y registrado correctamente.'
+    } catch (err) {
+      status.textContent = `Error: ${err.message}`
+    }
+  })
+})
+
