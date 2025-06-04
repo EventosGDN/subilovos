@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TV Player Legacy</title>
+  <meta name="theme-color" content="#000000" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: black;
+      overflow: hidden;
+    }
+    video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <video id="videoPlayer" autoplay muted loop>
+    <source src="https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/1749068944185_VID-20210303-WA0007.mp4" type="video/mp4" />
+    <source src="https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/1749069421397_1000218709.mp4" type="video/mp4" />
+  </video>
+  <script>
+    (function() {
+      var video = document.getElementById('videoPlayer');
+      var sources = video.getElementsByTagName('source');
+      var index = 0;
+
+      function playNext() {
+        index = (index + 1) % sources.length;
+        video.src = sources[index].src;
+        video.load();
+        video.play();
+      }
+
+      video.addEventListener('ended', playNext);
+      video.volume = 1.0;
+      video.play();
+    })();
+  </script>
+</body>
+</html>
