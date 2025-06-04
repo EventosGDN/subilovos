@@ -1,3 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subilo Vos</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#3b82f6" />
+  <link rel="icon" href="/192.png" type="image/png" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .catch(err => console.error('Service Worker error:', err));
+    }
+  </script>
+</head>
+
 <body>
   <div class="container">
     <h2>Subir video a Supabase</h2>
@@ -17,3 +36,4 @@
 
   <script type="module" src="/src/main.js"></script>
 </body>
+</html>
