@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Subir Video</title>
+</head>
+<body>
+  <h2>Subir video</h2>
+  <input type="file" id="videoInput" accept="video/*"><br>
+  <label>Inicio:</label><input type="date" id="startDate"><br>
+  <label>Fin:</label><input type="date" id="endDate"><br>
+  <button onclick="uploadVideo()">Subir</button>
+  <p id="status"></p>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
