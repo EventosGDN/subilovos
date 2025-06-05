@@ -1,30 +1,96 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TV Auto</title>
-  <meta name="theme-color" content="#000" />
-  <script>
-    (function () {
-      const isOldBrowser = () => {
-        const ua = navigator.userAgent;
-        return (
-          ua.includes('SmartTVA') ||                 // Philips CE-HTML
-          ua.includes('NetTV') ||                    // Navegadores Vewd
-          /Chrome\/([0-5][0-9]|6[0-4])/.test(ua)      // Chrome < 65
-        );
-      };
-
-      if (isOldBrowser()) {
-        window.location.href = "/tvlegacy/";
-      } else {
-        window.location.href = "/tv-player/";
-      }
-    })();
-  </script>
+  <title>TV Player Auto</title>
+  <meta name="theme-color" content="#000000" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: black;
+      overflow: hidden;
+    }
+    video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      background: black;
+    }
+    #fallback {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: black;
+      color: white;
+      font-size: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 1rem;
+    }
+  </style>
 </head>
-<body style="background:black;color:white;text-align:center;padding-top:20%">
-  Cargando reproductor...
+<body>
+  <video id="videoPlayer" muted autoplay></video>
+  <div id="fallback" style="display: none;">No se pudieron cargar videos programados.</div>
+
+  <script type="module">
+    const supabaseUrl = 'https://wqrkkkqmbrksleagqsli.supabase.co';
+    const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY';
+
+    const headers = {
+      "apikey": anonKey,
+      "Authorization": `Bearer ${anonKey}`,
+      "Content-Type": "application/json"
+    };
+
+    const video = document.getElementById('videoPlayer');
+    const fallback = document.getElementById('fallback');
+    let playlist = [];
+    let currentIndex = 0;
+
+    function playNext() {
+      if (playlist.length === 0) {
+        fallback.style.display = 'block';
+        return;
+      }
+      video.src = playlist[currentIndex];
+      video.play().catch(err => console.warn("Autoplay error:", err));
+    }
+
+    video.addEventListener('ended', () => {
+      currentIndex = (currentIndex + 1) % playlist.length;
+      playNext();
+    });
+
+    const isLegacy = (() => {
+      const ua = navigator.userAgent;
+      return ua.includes("NETTV") || ua.includes("Vewd") || ua.includes("SmartTVA") || ua.includes("CE-HTML");
+    })();
+
+    const today = new Date().toISOString().split('T')[0];
+    const query = `${supabaseUrl}/rest/v1/videos?select=*&start_date=lte.${today}&end_date=gte.${today}&order=created_at.asc`;
+
+    fetch(query, { headers })
+      .then(res => res.ok ? res.json() : Promise.reject("Error al obtener videos"))
+      .then(data => {
+        if (data.length > 0) {
+          playlist = data.map(v => v.url);
+        } else {
+          playlist = [isLegacy ? '/tv-player/videos/backup/tomas_v7.mp4' : '/tv/videos/backup/tomas_v7.mp4'];
+        }
+        playNext();
+      })
+      .catch(err => {
+        console.error(err);
+        playlist = [isLegacy ? '/tv-player/videos/backup/tomas_v7.mp4' : '/tv/videos/backup/tomas_v7.mp4'];
+        playNext();
+      });
+  </script>
 </body>
 </html>
