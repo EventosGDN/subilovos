@@ -47,7 +47,8 @@ const fetchVideoList = async () => {
 
   deleteBtn.addEventListener('click', async () => {
     const checked = [...videoList.querySelectorAll('input:checked')]
-    const files = checked.map(cb => ({ path: `temporales/${cb.value}` }))
+    const files = checked.map(cb => `temporales/${cb.value}`)
+
 const { error } = await supabase.storage.from('videos').remove(files)
 
     if (!error) {
