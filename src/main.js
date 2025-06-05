@@ -62,48 +62,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })
 
-  uploadBtn.addEventListener('click', async () => {
-    const file = document.getElementById('videoInput').files[0]
-    const start = document.getElementById('startDate').value
-    const end = document.getElementById('endDate').value
+ uploadBtn.addEventListener('click', async () => {
+  const fileInput = document.getElementById('videoInput')
+  const file = fileInput.files[0]
+  const startInput = document.getElementById('startDate')
+  const endInput = document.getElementById('endDate')
+  const start = startInput.value
+  const end = endInput.value
 
-    if (!file || !start || !end) {
-      status.textContent = 'Completá todos los campos.'
-      return
-    }
+  if (!file || !start || !end) {
+    status.textContent = 'Completá todos los campos.'
+    return
+  }
 
-    const cleanName = file.name.replace(/^temporales[\\/]/, '')
-    const filePath = `temporales/${Date.now()}_${cleanName}`
+  const cleanName = file.name.replace(/^temporales[\\/]/, '')
+  const filePath = `temporales/${Date.now()}_${cleanName}`
 
-    try {
-      status.textContent = 'Subiendo...'
-      progressContainer.style.display = 'block'
-      progressBar.style.width = '0%'
+  try {
+    status.textContent = 'Subiendo...'
+    progressContainer.style.display = 'block'
+    progressBar.style.width = '0%'
 
-      const { error: uploadError } = await supabase.storage
-        .from('videos')
-        .upload(filePath, file)
+    const { error: uploadError } = await supabase.storage
+      .from('videos')
+      .upload(filePath, file)
 
-      if (uploadError) throw uploadError
+    if (uploadError) throw uploadError
 
-      progressBar.style.width = '100%'
+    progressBar.style.width = '100%'
 
-      const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
-      const url = data.publicUrl
+    const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
+    const url = data.publicUrl
 
-      const { error: insertError } = await supabase.from('videos').insert([
-        { name: file.name, url, start_date: start, end_date: end }
-      ])
+    const { error: insertError } = await supabase.from('videos').insert([
+      { name: file.name, url, start_date: start, end_date: end },
+    ])
 
-      if (insertError) throw insertError
+    if (insertError) throw insertError
 
-      status.textContent = '✅ Video subido y registrado correctamente.'
-      fetchVideoList()
-    } catch (err) {
-      status.textContent = `❌ Error: ${err.message}`
-      progressContainer.style.display = 'none'
-    }
-  })
+    status.textContent = '✅ Video subido y registrado correctamente.'
+    fileInput.value = ''
+    startInput.value = ''
+    endInput.value = ''
+    progressContainer.style.display = 'none'
+    fetchVideoList()
+  } catch (err) {
+    status.textContent = `❌ Error: ${err.message}`
+    progressContainer.style.display = 'none'
+  }
+})
 
   fetchVideoList()
 })
