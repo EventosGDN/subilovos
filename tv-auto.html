@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TV Auto</title>
+  <meta name="theme-color" content="#000" />
+  <script>
+    (function () {
+      const isOldBrowser = () => {
+        const ua = navigator.userAgent;
+        return (
+          ua.includes('SmartTVA') ||                 // Philips CE-HTML
+          ua.includes('NetTV') ||                    // Navegadores Vewd
+          /Chrome\/([0-5][0-9]|6[0-4])/.test(ua)      // Chrome < 65
+        );
+      };
+
+      if (isOldBrowser()) {
+        window.location.href = "/tvlegacy/";
+      } else {
+        window.location.href = "/tv-player/";
+      }
+    })();
+  </script>
+</head>
+<body style="background:black;color:white;text-align:center;padding-top:20%">
+  Cargando reproductor...
+</body>
+</html>
