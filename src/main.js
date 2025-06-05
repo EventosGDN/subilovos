@@ -45,19 +45,34 @@ const fetchVideoList = async () => {
 }
 
 
-  deleteBtn.addEventListener('click', async () => {
-    const checked = [...videoList.querySelectorAll('input:checked')]
-    const files = checked.map(cb => `temporales/${cb.value}`)
+deleteBtn.addEventListener('click', async () => {
+  const checked = [...videoList.querySelectorAll('input:checked')]
+  const fileNames = checked.map(cb => cb.value)
+  const filePaths = fileNames.map(name => `temporales/${name}`)
 
-const { error } = await supabase.storage.from('videos').remove(files)
+  const { error: removeError } = await supabase.storage.from('videos').remove(filePaths)
 
-    if (!error) {
-      deleteStatus.textContent = `${files.length} video(s) eliminados.`
-      fetchVideoList()
+  if (!removeError) {
+    // Eliminar también de la tabla videos por nombre
+    const { error: deleteError } = await supabase
+      .from('videos')
+      .delete()
+      .in('name', fileNames)
+
+    if (!deleteError) {
+      deleteStatus.textContent = `${fileNames.length} video(s) eliminados.`
     } else {
-      deleteStatus.textContent = 'Error al eliminar.'
+      deleteStatus.textContent = 'Eliminado del bucket, pero no de la tabla.'
+      console.error('Error al borrar en la tabla:', deleteError)
     }
-  })
+
+    fetchVideoList()
+  } else {
+    deleteStatus.textContent = 'Error al eliminar del bucket.'
+    console.error('Error al borrar archivo:', removeError)
+  }
+})
+
 
   uploadBtn.addEventListener('click', async () => {
     const file = document.getElementById('videoInput').files[0]
