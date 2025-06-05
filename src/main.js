@@ -63,7 +63,9 @@ const { error } = await supabase.storage.from('videos').remove(files)
       return
     }
 
-    const filePath = `temporales/${Date.now()}_${file.name}`
+    const cleanName = file.name.replace(/^temporales[\\/]/, '');
+    const filePath = `temporales/${Date.now()}_${cleanName}`;
+
 
     try {
       status.textContent = 'Subiendo...'
