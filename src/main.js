@@ -16,29 +16,34 @@ document.addEventListener('DOMContentLoaded', () => {
   const deleteBtn = document.getElementById('deleteBtn')
   const deleteStatus = document.getElementById('deleteStatus')
 
-  const fetchVideoList = async () => {
-    const { data, error } = await supabase.storage.from('videos').list('temporales')
-    if (!error && data) {
-      videoList.innerHTML = ''
-      data.forEach(item => {
-        const div = document.createElement('div')
-        div.className = 'video-item'
-        const checkbox = document.createElement('input')
-        checkbox.type = 'checkbox'
-        checkbox.value = item.name
+const fetchVideoList = async () => {
+  const { data, error } = await supabase.storage.from('videos').list('temporales')
 
-        const timestamp = item.created_at
-          ? new Date(item.created_at).toLocaleString()
-          : 'Fecha desconocida'
-
-        div.appendChild(checkbox)
-        div.appendChild(
-          document.createTextNode(`${item.name} (${timestamp})`)
-        )
-        videoList.appendChild(div)
-      })
-    }
+  if (error) {
+    console.error('Error al obtener la lista:', error)
+    return
   }
+
+  if (data && data.length > 0) {
+    videoList.innerHTML = ''
+    data.forEach(item => {
+      const div = document.createElement('div')
+      div.className = 'video-item'
+      const checkbox = document.createElement('input')
+      checkbox.type = 'checkbox'
+      checkbox.value = item.name
+      div.appendChild(checkbox)
+
+      // No hay timestamp, así que solo mostramos el nombre
+      div.appendChild(document.createTextNode(item.name))
+
+      videoList.appendChild(div)
+    })
+  } else {
+    videoList.innerHTML = '<p>No hay videos disponibles.</p>'
+  }
+}
+
 
   deleteBtn.addEventListener('click', async () => {
     const checked = [...videoList.querySelectorAll('input:checked')]
