@@ -16,63 +16,51 @@ document.addEventListener('DOMContentLoaded', () => {
   const deleteBtn = document.getElementById('deleteBtn')
   const deleteStatus = document.getElementById('deleteStatus')
 
-const fetchVideoList = async () => {
-  const { data, error } = await supabase.storage.from('videos').list('temporales')
+  const fetchVideoList = async () => {
+    const { data, error } = await supabase.storage.from('videos').list('temporales')
 
-  if (error) {
-    console.error('Error al obtener la lista:', error)
-    return
-  }
-
-  if (data && data.length > 0) {
-    videoList.innerHTML = ''
-    data.forEach(item => {
-      const div = document.createElement('div')
-      div.className = 'video-item'
-      const checkbox = document.createElement('input')
-      checkbox.type = 'checkbox'
-      checkbox.value = item.name
-      div.appendChild(checkbox)
-
-      // No hay timestamp, así que solo mostramos el nombre
-      div.appendChild(document.createTextNode(item.name))
-
-      videoList.appendChild(div)
-    })
-  } else {
-    videoList.innerHTML = '<p>No hay videos disponibles.</p>'
-  }
-}
-
-
-deleteBtn.addEventListener('click', async () => {
-  const checked = [...videoList.querySelectorAll('input:checked')]
-  const fileNames = checked.map(cb => cb.value)
-  const filePaths = fileNames.map(name => `temporales/${name}`)
-
-  const { error: removeError } = await supabase.storage.from('videos').remove(filePaths)
-
-  if (!removeError) {
-    // Eliminar también de la tabla videos por nombre
-    const { error: deleteError } = await supabase
-      .from('videos')
-      .delete()
-      .in('name', fileNames)
-
-    if (!deleteError) {
-      deleteStatus.textContent = `${fileNames.length} video(s) eliminados.`
-    } else {
-      deleteStatus.textContent = 'Eliminado del bucket, pero no de la tabla.'
-      console.error('Error al borrar en la tabla:', deleteError)
+    if (error) {
+      console.error('Error al obtener la lista:', error)
+      return
     }
 
-    fetchVideoList()
-  } else {
-    deleteStatus.textContent = 'Error al eliminar del bucket.'
-    console.error('Error al borrar archivo:', removeError)
-  }
-})
+    if (data && data.length > 0) {
+      videoList.innerHTML = ''
+      data.forEach(item => {
+        const div = document.createElement('div')
+        div.className = 'video-item'
+        const checkbox = document.createElement('input')
+        checkbox.type = 'checkbox'
+        checkbox.value = item.name
+        div.appendChild(checkbox)
 
+        div.appendChild(document.createTextNode(item.name))
+        videoList.appendChild(div)
+      })
+    } else {
+      videoList.innerHTML = '<p>No hay videos disponibles.</p>'
+    }
+  }
+
+  deleteBtn.addEventListener('click', async () => {
+    const checked = [...videoList.querySelectorAll('input:checked')]
+    const files = checked.map(cb => `temporales/${cb.value}`)
+    const names = checked.map(cb => cb.value)
+
+    const { error: deleteError } = await supabase.storage.from('videos').remove(files)
+    const { error: dbError } = await supabase
+      .from('videos')
+      .delete()
+      .in('url', names.map(name => `https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/${name}`))
+
+    if (!deleteError && !dbError) {
+      deleteStatus.textContent = `${files.length} video(s) eliminados.`
+      fetchVideoList()
+    } else {
+      deleteStatus.textContent = 'Error al eliminar video o registro.'
+      console.error(deleteError || dbError)
+    }
+  })
 
   uploadBtn.addEventListener('click', async () => {
     const file = document.getElementById('videoInput').files[0]
@@ -84,9 +72,8 @@ deleteBtn.addEventListener('click', async () => {
       return
     }
 
-    const cleanName = file.name.replace(/^temporales[\\/]/, '');
-    const filePath = `temporales/${Date.now()}_${cleanName}`;
-
+    const cleanName = file.name.replace(/^temporales[\\/]/, '')
+    const filePath = `temporales/${Date.now()}_${cleanName}`
 
     try {
       status.textContent = 'Subiendo...'
@@ -105,7 +92,7 @@ deleteBtn.addEventListener('click', async () => {
       const url = data.publicUrl
 
       const { error: insertError } = await supabase.from('videos').insert([
-        { name: file.name, url, start_date: start, end_date: end },
+        { name: file.name, url, start_date: start, end_date: end }
       ])
 
       if (insertError) throw insertError
