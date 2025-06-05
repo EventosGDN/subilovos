@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TV Player - Legacy</title>
+  <title>TV Player</title>
   <meta name="theme-color" content="#000000" />
   <style>
     html, body {
@@ -40,8 +40,7 @@
 
   <script>
     const supabaseUrl = 'https://wqrkkkqmbrksleagqsli.supabase.co';
-    const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY';
-
+    const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Acortado para mostrar
     const headers = {
       "apikey": anonKey,
       "Authorization": `Bearer ${anonKey}`,
@@ -58,6 +57,7 @@
         fallback.style.display = 'block';
         return;
       }
+      fallback.style.display = 'none';
       video.src = playlist[currentIndex];
       video.play().catch(err => console.warn("Autoplay error:", err));
     }
@@ -67,25 +67,31 @@
       playNext();
     });
 
-    (function fetchVideos() {
+    async function fetchVideos() {
       const today = new Date().toISOString().split('T')[0];
+      try {
+        const res = await fetch(`${supabaseUrl}/rest/v1/videos?select=*&start_date=lte.${today}&end_date=gte.${today}&order=created_at.asc`, { headers });
+        const data = await res.json();
 
-      fetch(`${supabaseUrl}/rest/v1/videos?select=*&start_date=lte.${today}&end_date=gte.${today}&order=created_at.asc`, { headers })
-        .then(res => res.ok ? res.json() : Promise.reject("Error al obtener videos"))
-        .then(data => {
-          if (data.length > 0) {
-            playlist = data.map(v => v.url);
-          } else {
-            playlist = ['/tv-player/videos/backup/tomas_v7.mp4'];
-          }
-          playNext();
-        })
-        .catch(err => {
-          console.error(err);
+        if (data.length > 0) {
+          playlist = data.map(v => v.url);
+          currentIndex = 0;
+        } else {
           playlist = ['/tv-player/videos/backup/tomas_v7.mp4'];
-          playNext();
-        });
-    })();
+          currentIndex = 0;
+        }
+
+        playNext();
+      } catch (err) {
+        console.error('Error al obtener videos:', err);
+        playlist = ['/tv-player/videos/backup/tomas_v7.mp4'];
+        currentIndex = 0;
+        playNext();
+      }
+    }
+
+    fetchVideos();
+    setInterval(fetchVideos, 300000); // 5 minutos
   </script>
 </body>
 </html>
