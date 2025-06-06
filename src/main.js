@@ -63,76 +63,54 @@ document.addEventListener('DOMContentLoaded', () => {
   })
 
  uploadBtn.addEventListener('click', async () => {
-  const fileInput = document.getElementById('videoInput');
-  const file = fileInput.files[0];
-  const startInput = document.getElementById('startDate');
-  const endInput = document.getElementById('endDate');
-  const start = startInput.value;
-  const end = endInput.value;
+  const fileInput = document.getElementById('videoInput')
+  const file = fileInput.files[0]
+  const startInput = document.getElementById('startDate')
+  const endInput = document.getElementById('endDate')
+  const start = startInput.value
+  const end = endInput.value
 
   if (!file || !start || !end) {
-    status.textContent = 'Completá todos los campos.';
-    return;
+    status.textContent = 'Completá todos los campos.'
+    return
   }
 
-  const cleanName = file.name.replace(/^temporales[\\/]/, '');
-  const filePath = `temporales/${Date.now()}_${cleanName}`;
+  const cleanName = file.name.replace(/^temporales[\\/]/, '')
+  const filePath = `temporales/${Date.now()}_${cleanName}`
 
   try {
-    status.textContent = 'Obteniendo URL...';
-    progressContainer.style.display = 'block';
-    progressBar.style.width = '0%';
+    status.textContent = 'Subiendo...'
+    progressContainer.style.display = 'block'
+    progressBar.style.width = '0%'
 
-    // Obtener URL firmada de subida
-    const { data: signedUrlData, error: signedUrlError } = await supabase
-      .storage
+    const { error: uploadError } = await supabase.storage
       .from('videos')
-      .createSignedUploadUrl(filePath);
+      .upload(filePath, file)
 
-    if (signedUrlError || !signedUrlData) throw signedUrlError;
+    if (uploadError) throw uploadError
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', signedUrlData.signedUrl, true);
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const percent = (event.loaded / event.total) * 100;
-        progressBar.style.width = `${percent.toFixed(0)}%`;
-      }
-    };
+    progressBar.style.width = '100%'
 
-    xhr.onload = async () => {
-      if (xhr.status === 200) {
-        const { data } = supabase.storage.from('videos').getPublicUrl(filePath);
-        const url = data.publicUrl;
+    const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
+    const url = data.publicUrl
 
-        const { error: insertError } = await supabase.from('videos').insert([
-          { name: file.name, url, start_date: start, end_date: end }
-        ]);
+    const { error: insertError } = await supabase.from('videos').insert([
+      { name: file.name, url, start_date: start, end_date: end },
+    ])
 
-        if (insertError) throw insertError;
+    if (insertError) throw insertError
 
-        status.textContent = '✅ Video subido y registrado correctamente.';
-        fileInput.value = '';
-        startInput.value = '';
-        endInput.value = '';
-        progressContainer.style.display = 'none';
-        fetchVideoList();
-      } else {
-        throw new Error('Error al subir video.');
-      }
-    };
-
-    xhr.onerror = () => {
-      throw new Error('Fallo al conectar para subir el archivo.');
-    };
-
-    xhr.send(file);
+    status.textContent = '✅ Video subido y registrado correctamente.'
+    fileInput.value = ''
+    startInput.value = ''
+    endInput.value = ''
+    progressContainer.style.display = 'none'
+    fetchVideoList()
   } catch (err) {
-    status.textContent = `❌ Error: ${err.message}`;
-    progressContainer.style.display = 'none';
-    console.error(err);
+    status.textContent = `❌ Error: ${err.message}`
+    progressContainer.style.display = 'none'
   }
-});
+})
 
   fetchVideoList()
 })
