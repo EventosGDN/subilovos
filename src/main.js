@@ -15,6 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const videoList = document.getElementById('videoList')
   const deleteBtn = document.getElementById('deleteBtn')
   const deleteStatus = document.getElementById('deleteStatus')
+    const startInput = document.getElementById('startDate')
+  const endInput = document.getElementById('endDate')
+  const today = new Date().toISOString().split('T')[0]
+
+  startInput.value = `${today}T00:00`
+  endInput.value = `${today}T23:59`
+
 
   const fetchVideoList = async () => {
     const { data, error } = await supabase.storage.from('videos').list('temporales')
