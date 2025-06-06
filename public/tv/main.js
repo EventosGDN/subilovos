@@ -24,8 +24,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
       return
     }
     fallback.style.display = 'none'
-    videoElement.src = playlist[currentIndex]
-    videoElement.play().catch(err => console.warn("Error al reproducir:", err))
+    videoElement.pause()
+videoElement.src = playlist[currentIndex]
+videoElement.load()
+videoElement.play().catch(err => console.warn("Error al reproducir:", err))
+
   }
 
   videoElement.addEventListener('ended', () => {
