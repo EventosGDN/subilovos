@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!deleteError && !dbError) {
       deleteStatus.textContent = `${files.length} video(s) eliminados.`
+      setTimeout(() => deleteStatus.textContent = '', 4000)
       fetchVideoList()
     } else {
       deleteStatus.textContent = 'Error al eliminar video o registro.'
@@ -126,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (insertError) throw insertError
 
     status.textContent = '✅ Video subido y registrado correctamente.'
+    setTimeout(() => status.textContent = '', 4000)
     fileInput.value = ''
     startInput.value = ''
     endInput.value = ''
