@@ -1,0 +1,51 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background-color: black;
+  overflow: hidden;
+}
+
+video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  background: black;
+  color: transparent;
+  display: block;
+  outline: none;
+}
+
+/* Elimina controles y overlays en todos los navegadores posibles */
+video::-internal-media-controls-overlay-cast-button,
+video::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls,
+video::-moz-media-controls {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+video::cue {
+  display: none;
+}
+
+#fallback {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: black;
+  color: white;
+  font-size: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 1rem;
+}
