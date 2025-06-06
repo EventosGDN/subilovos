@@ -33,6 +33,25 @@
       text-align: center;
       padding: 1rem;
     }
+
+    video::-internal-media-controls-overlay-cast-button,
+video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls {
+  display: none !important;
+}
+
+video::cue {
+  display: none;
+}
+
+video {
+  background-color: black;
+  color: transparent;
+}
+
   </style>
 </head>
 <body>
