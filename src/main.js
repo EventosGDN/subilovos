@@ -67,8 +67,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const file = fileInput.files[0]
   const startInput = document.getElementById('startDate')
   const endInput = document.getElementById('endDate')
+
   const start = startInput.value
   const end = endInput.value
+
+  // Setear valores por defecto si están vacíos
+  const today = new Date().toISOString().split('T')[0]
+  if (!start) startInput.value = `${today}T00:00`
+  if (!end) endInput.value = `${today}T23:59`
+
+  // Validación de fechas
+  const startDateTime = new Date(startInput.value)
+  const endDateTime = new Date(endInput.value)
+
+  if (endDateTime <= startDateTime) {
+    status.innerHTML = '⚠️ La fecha y hora de fin debe ser posterior a la de inicio.'
+    status.style.color = 'orange'
+    return
+  } else {
+    status.style.color = ''
+  }
 
   if (!file || !start || !end) {
     status.textContent = 'Completá todos los campos.'
@@ -95,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const url = data.publicUrl
 
     const { error: insertError } = await supabase.from('videos').insert([
-      { name: file.name, url, start_date: start, end_date: end },
+      { name: file.name, url, start_date: startInput.value, end_date: endInput.value },
     ])
 
     if (insertError) throw insertError
@@ -111,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     progressContainer.style.display = 'none'
   }
 })
+
 
   fetchVideoList()
 })

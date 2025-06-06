@@ -61,10 +61,12 @@
   <div class="container">
     <h2>Subir video</h2>
     <input type="file" id="videoInput" accept="video/*" />
-    <label>Inicio:</label>
-    <input type="date" id="startDate" />
-    <label>Fin:</label>
-    <input type="date" id="endDate" />
+    <label for="startDate">Inicio:</label>
+<input type="datetime-local" id="startDate" name="startDate" required>
+
+<label for="endDate">Fin:</label>
+<input type="datetime-local" id="endDate" name="endDate" required>
+
     <button id="uploadBtn">Subir</button>
 
     <div id="progressContainer">
