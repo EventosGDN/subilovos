@@ -117,8 +117,8 @@ uploadBtn.addEventListener('click', async () => {
   const fileInput = document.getElementById('videoInput')
   const file = fileInput.files[0]
 
-  const start = toUTC(startDateDate.value, startDateTime.value)
-  const end = toUTC(endDateDate.value, endDateTime.value)
+  const start = new Date(`${startDateDate.value}T${startDateTime.value}`).toISOString()
+  const end = new Date(`${endDateDate.value}T${endDateTime.value}`).toISOString()
 
   if (!file || !start || !end) {
     status.textContent = 'Completá todos los campos.'
