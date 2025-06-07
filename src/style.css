@@ -203,3 +203,16 @@ button:hover {
 .fade-out.hide {
   opacity: 0;
 }
+
+
+.datetime-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.datetime-group input[type="date"],
+.datetime-group input[type="time"] {
+  flex: 1;
+}
