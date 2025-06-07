@@ -27,22 +27,42 @@ document.addEventListener('DOMContentLoaded', () => {
   endDateTime.value = '23:59'
 
   const cleanExpiredVideos = async () => {
-    const now = new Date().toISOString()
-    const { data, error } = await supabase.from('videos').select('url').lt('end_date', now)
-    if (error || !data || data.length === 0) return
+  const now = new Date().toISOString()
 
-    const urlsToDelete = data.map(v => v.url)
-    const filesToDelete = urlsToDelete.map(url => `temporales/${url.split('/').pop()}`)
+  const { data: expired, error } = await supabase
+    .from('videos')
+    .select('url')
+    .lt('end_date', now)
 
-    const { error: storageErr } = await supabase.storage.from('videos').remove(filesToDelete)
-    const { error: dbErr } = await supabase.from('videos').delete().in('url', urlsToDelete)
-
-    if (!storageErr && !dbErr) {
-      console.log(`✅ ${filesToDelete.length} video(s) vencidos eliminados.`)
-    } else {
-      console.warn('Error al eliminar vencidos:', storageErr || dbErr)
-    }
+  if (error) {
+    console.warn('Error al buscar vencidos:', error)
+    return
   }
+
+  if (!expired || expired.length === 0) return
+
+  const urls = expired.map(v => v.url)
+  const filePaths = urls.map(url => {
+    const parts = url.split('/')
+    return `temporales/${parts[parts.length - 1]}`
+  })
+
+  const { error: storageError } = await supabase
+    .storage.from('videos')
+    .remove(filePaths)
+
+  const { error: dbError } = await supabase
+    .from('videos')
+    .delete()
+    .in('url', urls)
+
+  if (!storageError && !dbError) {
+    console.log(`🧹 ${filePaths.length} vencidos eliminados del Storage y tabla.`)
+  } else {
+    console.warn('⚠️ Error al limpiar:', storageError || dbError)
+  }
+}
+
 
   const fetchVideoList = async () => {
     const { data, error } = await supabase.storage.from('videos').list('temporales')
