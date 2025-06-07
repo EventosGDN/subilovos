@@ -107,62 +107,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })
 
-  uploadBtn.addEventListener('click', async () => {
-    const fileInput = document.getElementById('videoInput')
-    const file = fileInput.files[0]
+  // Utilidad para convertir a UTC ISO string
+const toUTC = (dateStr, timeStr) => {
+  const local = new Date(`${dateStr}T${timeStr}`)
+  return new Date(local.getTime() - local.getTimezoneOffset() * 60000).toISOString()
+}
 
-    const start = `${startDateDate.value}T${startDateTime.value}`
-    const end = `${endDateDate.value}T${endDateTime.value}`
+uploadBtn.addEventListener('click', async () => {
+  const fileInput = document.getElementById('videoInput')
+  const file = fileInput.files[0]
 
-    if (!file || !start || !end) {
-      status.textContent = 'Completá todos los campos.'
-      return
-    }
+  const start = toUTC(startDateDate.value, startDateTime.value)
+  const end = toUTC(endDateDate.value, endDateTime.value)
 
-    if (new Date(end) <= new Date(start)) {
-      status.innerHTML = '⚠️ La fecha y hora de fin debe ser posterior a la de inicio.'
-      status.style.color = 'orange'
-      return
-    } else {
-      status.style.color = ''
-    }
+  if (!file || !start || !end) {
+    status.textContent = 'Completá todos los campos.'
+    return
+  }
 
-    const cleanName = file.name.replace(/^temporales[\\/]/, '')
-    const filePath = `temporales/${Date.now()}_${cleanName}`
+  if (new Date(end) <= new Date(start)) {
+    status.innerHTML = '⚠️ La fecha y hora de fin debe ser posterior a la de inicio.'
+    status.style.color = 'orange'
+    return
+  } else {
+    status.style.color = ''
+  }
 
-    try {
-      status.textContent = 'Subiendo...'
-      progressContainer.style.display = 'block'
-      progressBar.style.width = '0%'
+  const cleanName = file.name.replace(/^temporales[\\/]/, '')
+  const filePath = `temporales/${Date.now()}_${cleanName}`
 
-      const { error: uploadErr } = await supabase.storage.from('videos').upload(filePath, file)
-      if (uploadErr) throw uploadErr
+  try {
+    status.textContent = 'Subiendo...'
+    progressContainer.style.display = 'block'
+    progressBar.style.width = '0%'
 
-      progressBar.style.width = '100%'
-      const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
-      const url = data.publicUrl
+    const { error: uploadErr } = await supabase.storage.from('videos').upload(filePath, file)
+    if (uploadErr) throw uploadErr
 
-      const { error: insertErr } = await supabase.from('videos').insert([
-        { name: file.name, url, start_date: start, end_date: end }
-      ])
-      if (insertErr) throw insertErr
+    progressBar.style.width = '100%'
+    const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
+    const url = data.publicUrl
 
-      status.textContent = '✅ Video subido y registrado correctamente.'
-      status.classList.add('fade-out')
-      setTimeout(() => status.classList.add('hide'), 3000)
-      setTimeout(() => {
-        status.textContent = ''
-        status.classList.remove('fade-out', 'hide')
-      }, 4000)
+    const { error: insertErr } = await supabase.from('videos').insert([
+      { name: file.name, url, start_date: start, end_date: end }
+    ])
+    if (insertErr) throw insertErr
 
-      fileInput.value = ''
-      progressContainer.style.display = 'none'
-      fetchVideoList()
-    } catch (err) {
-      status.textContent = `❌ Error: ${err.message}`
-      progressContainer.style.display = 'none'
-    }
-  })
+    status.textContent = '✅ Video subido y registrado correctamente.'
+    status.classList.add('fade-out')
+    setTimeout(() => status.classList.add('hide'), 3000)
+    setTimeout(() => {
+      status.textContent = ''
+      status.classList.remove('fade-out', 'hide')
+    }, 4000)
+
+    fileInput.value = ''
+    progressContainer.style.display = 'none'
+    fetchVideoList()
+  } catch (err) {
+    status.textContent = `❌ Error: ${err.message}`
+    progressContainer.style.display = 'none'
+  }
+})
 
   cleanExpiredVideos()
   fetchVideoList()
