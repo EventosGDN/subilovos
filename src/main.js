@@ -8,8 +8,27 @@ const supabase = createClient(
 )
 
 document.addEventListener('DOMContentLoaded', () => {
+  const uploadBtn = document.getElementById('uploadBtn')
+  const progressContainer = document.getElementById('progressContainer')
+  const progressBar = document.getElementById('progressBar')
+  const status = document.getElementById('status')
+  const videoList = document.getElementById('videoList')
+  const deleteBtn = document.getElementById('deleteBtn')
+  const deleteStatus = document.getElementById('deleteStatus')
+  const startDateDate = document.getElementById('startDateDate')
+  const startDateTime = document.getElementById('startDateTime')
+  const endDateDate = document.getElementById('endDateDate')
+  const endDateTime = document.getElementById('endDateTime')
+
+  const today = '2025-06-07' // Actualizado dinámicamente si querés luego
+  startDateDate.value = today
+  endDateDate.value = today
+  startDateTime.value = '00:00'
+  endDateTime.value = '23:59'
+
   const cleanExpiredVideos = async () => {
     const now = new Date().toISOString()
+
     const { data, error } = await supabase
       .from('videos')
       .select('*')
@@ -23,51 +42,22 @@ document.addEventListener('DOMContentLoaded', () => {
       return `temporales/${parts[parts.length - 1]}`
     })
 
-    const { error: deleteStorageError } = await supabase
-      .storage.from('videos')
-      .remove(filesToDelete)
+    const { error: storageErr } = await supabase.storage.from('videos').remove(filesToDelete)
+    const { error: dbErr } = await supabase.from('videos').delete().in('url', urlsToDelete)
 
-    const { error: deleteDbError } = await supabase
-      .from('videos')
-      .delete()
-      .in('url', urlsToDelete)
-
-    if (!deleteStorageError && !deleteDbError) {
+    if (!storageErr && !dbErr) {
       console.log(`${filesToDelete.length} video(s) vencidos eliminados automáticamente.`)
     } else {
-      console.warn('Error al eliminar videos vencidos:', deleteStorageError || deleteDbError)
+      console.warn('Error al eliminar vencidos:', storageErr || dbErr)
     }
   }
 
-  cleanExpiredVideos()
-
-  const uploadBtn = document.getElementById('uploadBtn')
-  const progressContainer = document.getElementById('progressContainer')
-  const progressBar = document.getElementById('progressBar')
-  const status = document.getElementById('status')
-  const videoList = document.getElementById('videoList')
-  const deleteBtn = document.getElementById('deleteBtn')
-  const deleteStatus = document.getElementById('deleteStatus')
-  const startDateDate = document.getElementById('startDateDate')
-  const startDateTime = document.getElementById('startDateTime')
-  const endDateDate = document.getElementById('endDateDate')
-  const endDateTime = document.getElementById('endDateTime')
-
-  const today = new Date().toISOString().split('T')[0]
-  startDateDate.value = today
-  endDateDate.value = today
-  startDateTime.value = '00:00'
-  endDateTime.value = '23:59'
-
   const fetchVideoList = async () => {
     const { data, error } = await supabase.storage.from('videos').list('temporales')
-    if (error) {
-      console.error('Error al obtener la lista:', error)
-      return
-    }
+    if (error) return console.error('Error al obtener la lista:', error)
 
-    if (data && data.length > 0) {
-      videoList.innerHTML = ''
+    videoList.innerHTML = ''
+    if (data?.length > 0) {
       data.forEach(item => {
         const div = document.createElement('div')
         div.className = 'video-item'
@@ -86,15 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
   deleteBtn.addEventListener('click', async () => {
     const checked = [...videoList.querySelectorAll('input:checked')]
     const files = checked.map(cb => `temporales/${cb.value}`)
-    const names = checked.map(cb => cb.value)
+    const urls = checked.map(cb =>
+      `https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/${cb.value}`
+    )
 
-    const { error: deleteError } = await supabase.storage.from('videos').remove(files)
-    const { error: dbError } = await supabase
-      .from('videos')
-      .delete()
-      .in('url', names.map(name => `https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/${name}`))
+    const { error: storageErr } = await supabase.storage.from('videos').remove(files)
+    const { error: dbErr } = await supabase.from('videos').delete().in('url', urls)
 
-    if (!deleteError && !dbError) {
+    if (!storageErr && !dbErr) {
       deleteStatus.textContent = `${files.length} video(s) eliminados.`
       deleteStatus.classList.add('fade-out')
       setTimeout(() => deleteStatus.classList.add('hide'), 3000)
@@ -105,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
       fetchVideoList()
     } else {
       deleteStatus.textContent = 'Error al eliminar video o registro.'
-      console.error(deleteError || dbError)
     }
   })
 
@@ -121,15 +109,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return
     }
 
-    const startDateTimeVal = new Date(start)
-    const endDateTimeVal = new Date(end)
-
-    if (endDateTimeVal <= startDateTimeVal) {
+    const startDate = new Date(start)
+    const endDate = new Date(end)
+    if (endDate <= startDate) {
       status.innerHTML = '⚠️ La fecha y hora de fin debe ser posterior a la de inicio.'
       status.style.color = 'orange'
       return
-    } else {
-      status.style.color = ''
     }
 
     const cleanName = file.name.replace(/^temporales[\\/]/, '')
@@ -140,22 +125,18 @@ document.addEventListener('DOMContentLoaded', () => {
       progressContainer.style.display = 'block'
       progressBar.style.width = '0%'
 
-      const { error: uploadError } = await supabase.storage
-        .from('videos')
-        .upload(filePath, file)
-
-      if (uploadError) throw uploadError
+      const { error: uploadErr } = await supabase.storage.from('videos').upload(filePath, file)
+      if (uploadErr) throw uploadErr
 
       progressBar.style.width = '100%'
 
       const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
       const url = data.publicUrl
 
-      const { error: insertError } = await supabase.from('videos').insert([
-        { name: file.name, url, start_date: start, end_date: end },
+      const { error: insertErr } = await supabase.from('videos').insert([
+        { name: file.name, url, start_date: start, end_date: end }
       ])
-
-      if (insertError) throw insertError
+      if (insertErr) throw insertErr
 
       status.textContent = '✅ Video subido y registrado correctamente.'
       status.classList.add('fade-out')
@@ -166,10 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 4000)
 
       fileInput.value = ''
-      startDateDate.value = today
-      endDateDate.value = today
-      startDateTime.value = '00:00'
-      endDateTime.value = '23:59'
       progressContainer.style.display = 'none'
       fetchVideoList()
     } catch (err) {
@@ -178,5 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })
 
+  cleanExpiredVideos()
   fetchVideoList()
 })
