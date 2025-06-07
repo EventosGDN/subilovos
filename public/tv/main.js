@@ -46,7 +46,7 @@ const getTodayVideos = async () => {
     .select('url')
     .lte('start_date', now)
     .gte('end_date', now)
-    .order('created_at', { ascending: true })
+    .order('end_date', { ascending: true })
 
   if (error || !data || data.length === 0) {
     console.warn("Sin videos válidos, usando respaldo.")
