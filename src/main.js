@@ -8,7 +8,8 @@ const supabase = createClient(
 )
 
 document.addEventListener('DOMContentLoaded', () => {
-    const cleanExpiredVideos = async () => {
+  // Limpieza automática de videos vencidos
+  const cleanExpiredVideos = async () => {
     const now = new Date().toISOString()
 
     const { data, error } = await supabase
@@ -24,24 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return `temporales/${parts[parts.length - 1]}`
     })
 
-    const { error: deleteStorageError } = await supabase
-      .storage.from('videos')
-      .remove(filesToDelete)
+    await supabase.storage.from('videos').remove(filesToDelete)
+    await supabase.from('videos').delete().in('url', urlsToDelete)
 
-    const { error: deleteDbError } = await supabase
-      .from('videos')
-      .delete()
-      .in('url', urlsToDelete)
-
-    if (!deleteStorageError && !deleteDbError) {
-      console.log(`${filesToDelete.length} video(s) vencidos eliminados automáticamente.`)
-    } else {
-      console.warn('Error al eliminar videos vencidos:', deleteStorageError || deleteDbError)
-    }
+    console.log(`${filesToDelete.length} video(s) vencidos eliminados automáticamente.`)
   }
 
   cleanExpiredVideos()
 
+  // Referencias a elementos del DOM
   const uploadBtn = document.getElementById('uploadBtn')
   const progressContainer = document.getElementById('progressContainer')
   const progressBar = document.getElementById('progressBar')
@@ -49,14 +41,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const videoList = document.getElementById('videoList')
   const deleteBtn = document.getElementById('deleteBtn')
   const deleteStatus = document.getElementById('deleteStatus')
-    const startInput = document.getElementById('startDate')
-  const endInput = document.getElementById('endDate')
+
+  const startDateDate = document.getElementById('startDateDate')
+  const startDateTime = document.getElementById('startDateTime')
+  const endDateDate = document.getElementById('endDateDate')
+  const endDateTime = document.getElementById('endDateTime')
+
+  // Setear fechas actuales por defecto
   const today = new Date().toISOString().split('T')[0]
+  startDateDate.value = today
+  endDateDate.value = today
+  startDateTime.value = '00:00'
+  endDateTime.value = '23:59'
 
-  startInput.value = `${today}T00:00`
-  endInput.value = `${today}T23:59`
-
-
+  // Listar videos existentes
   const fetchVideoList = async () => {
     const { data, error } = await supabase.storage.from('videos').list('temporales')
 
@@ -65,8 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return
     }
 
-    if (data && data.length > 0) {
-      videoList.innerHTML = ''
+    videoList.innerHTML = ''
+
+    if (data?.length > 0) {
       data.forEach(item => {
         const div = document.createElement('div')
         div.className = 'video-item'
@@ -74,7 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
         checkbox.type = 'checkbox'
         checkbox.value = item.name
         div.appendChild(checkbox)
-
         div.appendChild(document.createTextNode(item.name))
         videoList.appendChild(div)
       })
@@ -83,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Borrar seleccionados
   deleteBtn.addEventListener('click', async () => {
     const checked = [...videoList.querySelectorAll('input:checked')]
     const files = checked.map(cb => `temporales/${cb.value}`)
@@ -96,13 +95,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!deleteError && !dbError) {
       deleteStatus.textContent = `${files.length} video(s) eliminados.`
-deleteStatus.classList.add('fade-out')
-setTimeout(() => deleteStatus.classList.add('hide'), 3000)
-setTimeout(() => {
-  deleteStatus.textContent = ''
-  deleteStatus.classList.remove('fade-out', 'hide')
-}, 4000)
-
+      deleteStatus.classList.add('fade-out')
+      setTimeout(() => deleteStatus.classList.add('hide'), 3000)
+      setTimeout(() => {
+        deleteStatus.textContent = ''
+        deleteStatus.classList.remove('fade-out', 'hide')
+      }, 4000)
       fetchVideoList()
     } else {
       deleteStatus.textContent = 'Error al eliminar video o registro.'
@@ -110,81 +108,69 @@ setTimeout(() => {
     }
   })
 
- uploadBtn.addEventListener('click', async () => {
-  const fileInput = document.getElementById('videoInput')
-  const file = fileInput.files[0]
-  const startInput = document.getElementById('startDate')
-  const endInput = document.getElementById('endDate')
+  // Subir video
+  uploadBtn.addEventListener('click', async () => {
+    const fileInput = document.getElementById('videoInput')
+    const file = fileInput.files[0]
 
-  const start = startInput.value
-  const end = endInput.value
+    const start = `${startDateDate.value}T${startDateTime.value}`
+    const end = `${endDateDate.value}T${endDateTime.value}`
 
-  // Setear valores por defecto si están vacíos
-  const today = new Date().toISOString().split('T')[0]
-  if (!start) startInput.value = `${today}T00:00`
-  if (!end) endInput.value = `${today}T23:59`
+    const startDateTimeObj = new Date(start)
+    const endDateTimeObj = new Date(end)
 
-  // Validación de fechas
-  const startDateTime = new Date(startInput.value)
-  const endDateTime = new Date(endInput.value)
+    if (endDateTimeObj <= startDateTimeObj) {
+      status.innerHTML = '⚠️ La fecha y hora de fin debe ser posterior a la de inicio.'
+      status.style.color = 'orange'
+      return
+    }
 
-  if (endDateTime <= startDateTime) {
-    status.innerHTML = '⚠️ La fecha y hora de fin debe ser posterior a la de inicio.'
-    status.style.color = 'orange'
-    return
-  } else {
-    status.style.color = ''
-  }
+    if (!file || !start || !end) {
+      status.textContent = 'Completá todos los campos.'
+      return
+    }
 
-  if (!file || !start || !end) {
-    status.textContent = 'Completá todos los campos.'
-    return
-  }
+    const cleanName = file.name.replace(/^temporales[\\/]/, '')
+    const filePath = `temporales/${Date.now()}_${cleanName}`
 
-  const cleanName = file.name.replace(/^temporales[\\/]/, '')
-  const filePath = `temporales/${Date.now()}_${cleanName}`
+    try {
+      status.textContent = 'Subiendo...'
+      progressContainer.style.display = 'block'
+      progressBar.style.width = '0%'
 
-  try {
-    status.textContent = 'Subiendo...'
-    progressContainer.style.display = 'block'
-    progressBar.style.width = '0%'
+      const { error: uploadError } = await supabase.storage
+        .from('videos')
+        .upload(filePath, file)
 
-    const { error: uploadError } = await supabase.storage
-      .from('videos')
-      .upload(filePath, file)
+      if (uploadError) throw uploadError
 
-    if (uploadError) throw uploadError
+      progressBar.style.width = '100%'
 
-    progressBar.style.width = '100%'
+      const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
+      const url = data.publicUrl
 
-    const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
-    const url = data.publicUrl
+      const { error: insertError } = await supabase.from('videos').insert([
+        { name: file.name, url, start_date: start, end_date: end },
+      ])
 
-    const { error: insertError } = await supabase.from('videos').insert([
-      { name: file.name, url, start_date: startInput.value, end_date: endInput.value },
-    ])
+      if (insertError) throw insertError
 
-    if (insertError) throw insertError
+      status.textContent = '✅ Video subido y registrado correctamente.'
+      status.classList.add('fade-out')
+      setTimeout(() => status.classList.add('hide'), 3000)
+      setTimeout(() => {
+        status.textContent = ''
+        status.classList.remove('fade-out', 'hide')
+      }, 4000)
 
-    status.textContent = '✅ Video subido y registrado correctamente.'
-status.classList.add('fade-out')
-setTimeout(() => status.classList.add('hide'), 3000)
-setTimeout(() => {
-  status.textContent = ''
-  status.classList.remove('fade-out', 'hide')
-}, 4000)
-
-    fileInput.value = ''
-    startInput.value = ''
-    endInput.value = ''
-    progressContainer.style.display = 'none'
-    fetchVideoList()
-  } catch (err) {
-    status.textContent = `❌ Error: ${err.message}`
-    progressContainer.style.display = 'none'
-  }
-})
-
+      fileInput.value = ''
+      fetchVideoList()
+    } catch (err) {
+      status.textContent = `❌ Error: ${err.message}`
+    } finally {
+      progressContainer.style.display = 'none'
+    }
+  })
 
   fetchVideoList()
 })
