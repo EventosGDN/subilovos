@@ -8,6 +8,40 @@ const supabase = createClient(
 )
 
 document.addEventListener('DOMContentLoaded', () => {
+    const cleanExpiredVideos = async () => {
+    const now = new Date().toISOString()
+
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .lt('end_date', now)
+
+    if (error || !data || data.length === 0) return
+
+    const urlsToDelete = data.map(v => v.url)
+    const filesToDelete = urlsToDelete.map(url => {
+      const parts = url.split('/')
+      return `temporales/${parts[parts.length - 1]}`
+    })
+
+    const { error: deleteStorageError } = await supabase
+      .storage.from('videos')
+      .remove(filesToDelete)
+
+    const { error: deleteDbError } = await supabase
+      .from('videos')
+      .delete()
+      .in('url', urlsToDelete)
+
+    if (!deleteStorageError && !deleteDbError) {
+      console.log(`${filesToDelete.length} video(s) vencidos eliminados automáticamente.`)
+    } else {
+      console.warn('Error al eliminar videos vencidos:', deleteStorageError || deleteDbError)
+    }
+  }
+
+  cleanExpiredVideos()
+
   const uploadBtn = document.getElementById('uploadBtn')
   const progressContainer = document.getElementById('progressContainer')
   const progressBar = document.getElementById('progressBar')
