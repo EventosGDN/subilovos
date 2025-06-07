@@ -62,7 +62,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!deleteError && !dbError) {
       deleteStatus.textContent = `${files.length} video(s) eliminados.`
-      setTimeout(() => deleteStatus.textContent = '', 4000)
+deleteStatus.classList.add('fade-out')
+setTimeout(() => deleteStatus.classList.add('hide'), 3000)
+setTimeout(() => {
+  deleteStatus.textContent = ''
+  deleteStatus.classList.remove('fade-out', 'hide')
+}, 4000)
+
       fetchVideoList()
     } else {
       deleteStatus.textContent = 'Error al eliminar video o registro.'
@@ -127,7 +133,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (insertError) throw insertError
 
     status.textContent = '✅ Video subido y registrado correctamente.'
-    setTimeout(() => status.textContent = '', 4000)
+status.classList.add('fade-out')
+setTimeout(() => status.classList.add('hide'), 3000)
+setTimeout(() => {
+  status.textContent = ''
+  status.classList.remove('fade-out', 'hide')
+}, 4000)
+
     fileInput.value = ''
     startInput.value = ''
     endInput.value = ''
