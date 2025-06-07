@@ -21,9 +21,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const endDateTime = document.getElementById('endDateTime')
 
   const today = new Date()
-  startDateDate.valueAsDate = today
+  const yyyyMMdd = today.toISOString().split('T')[0]
+
+  startDateDate.value = yyyyMMdd
   startDateTime.value = '00:00'
-  endDateDate.valueAsDate = today
+  endDateDate.value = yyyyMMdd
   endDateTime.value = '23:59'
 
   const cleanExpiredVideos = async () => {
