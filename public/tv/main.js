@@ -45,7 +45,8 @@ const getTodayVideos = async () => {
     .from('videos')
     .select('url')
     .lte('start_date', now)
-    .gte('end_date', now)
+    .gt('end_date', now)
+
     .order('end_date', { ascending: true })
 
   if (error || !data || data.length === 0) {
