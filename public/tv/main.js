@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const supabase = createClient(
   'https://wqrkkkqmbrksleagqsli.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
 )
 
 const isLegacy = (() => {
@@ -35,18 +35,25 @@ const playCurrent = () => {
 
 videoElement.addEventListener('ended', async () => {
   currentIndex = (currentIndex + 1) % playlist.length
-  await getTodayVideos() // fuerza verificación por si el video ya venció
+  await getTodayVideos()
   playCurrent()
 })
 
 const getTodayVideos = async () => {
-  const now = new Date().toISOString()
+  const { data: nowResult, error: timeError } = await supabase.rpc('now_utc')
+  if (timeError || !nowResult?.length) {
+    console.warn("No se pudo obtener la hora UTC del servidor.")
+    playlist = [isLegacy ? '/tv-player/videos/backup/Tomas asistente.mp4' : '/tv/videos/backup/Tomas asistente.mp4']
+    return
+  }
+
+  const now = nowResult[0]
+
   const { data, error } = await supabase
     .from('videos')
     .select('url')
     .lte('start_date', now)
     .gt('end_date', now)
-
     .order('end_date', { ascending: true })
 
   if (error || !data || data.length === 0) {
@@ -59,11 +66,9 @@ const getTodayVideos = async () => {
   currentIndex = 0
 }
 
-// Primera carga
 await getTodayVideos()
 playCurrent()
 
-// Actualiza cada 2 minutos si está pausado o terminó
 setInterval(async () => {
   if (videoElement.paused || videoElement.ended) {
     await getTodayVideos()
