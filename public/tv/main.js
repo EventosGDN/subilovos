@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const supabase = createClient(
   'https://wqrkkkqmbrksleagqsli.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
 )
 
 const isLegacy = (() => {
@@ -33,40 +33,48 @@ const playCurrent = () => {
   videoElement.play().catch(err => console.warn("Error al reproducir:", err))
 }
 
-videoElement.addEventListener('ended', async () => {
+videoElement.addEventListener('ended', () => {
   currentIndex = (currentIndex + 1) % playlist.length
-  await getTodayVideos() // fuerza verificación por si el video ya venció
   playCurrent()
 })
 
-const getTodayVideos = async () => {
+const getActiveVideos = async () => {
   const now = new Date().toISOString()
   const { data, error } = await supabase
     .from('videos')
-    .select('url')
+    .select('url, start_date, end_date')
     .lte('start_date', now)
     .gt('end_date', now)
+    .order('start_date', { ascending: true })
 
-    .order('end_date', { ascending: true })
-
-  if (error || !data || data.length === 0) {
-    console.warn("Sin videos válidos, usando respaldo.")
-    playlist = [isLegacy ? '/tv-player/videos/backup/Tomas asistente.mp4' : '/tv/videos/backup/Tomas asistente.mp4']
-  } else {
-    playlist = data.map(v => v.url)
+  if (error) {
+    console.warn("❌ Error al consultar videos:", error)
+    return []
   }
 
+  return data.map(v => v.url)
+}
+
+const updatePlaylist = async () => {
+  const urls = await getActiveVideos()
+  if (urls.length === 0) {
+    playlist = [isLegacy ? '/tv-player/videos/backup/Tomas asistente.mp4' : '/tv/videos/backup/Tomas asistente.mp4']
+  } else {
+    playlist = urls
+  }
   currentIndex = 0
 }
 
-// Primera carga
-await getTodayVideos()
+// Primer carga
+await updatePlaylist()
 playCurrent()
 
-// Actualiza cada 2 minutos si está pausado o terminó
+// Chequeo continuo: actualiza lista incluso si el video sigue en curso
 setInterval(async () => {
-  if (videoElement.paused || videoElement.ended) {
-    await getTodayVideos()
-    console.log("Playlist actualizada automáticamente.")
+  const wasEmpty = playlist.length === 0 || playlist[0].includes('/backup/')
+  await updatePlaylist()
+  if (wasEmpty && playlist.length > 0 && !playlist[0].includes('/backup/')) {
+    console.log("Nuevo video disponible, iniciando.")
+    playCurrent()
   }
-}, 2 * 60 * 1000)
+}, 30000)
