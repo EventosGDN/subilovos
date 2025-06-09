@@ -33,21 +33,21 @@ const playCurrent = () => {
   videoElement.play().catch(err => console.warn("Error al reproducir:", err))
 }
 
-videoElement.addEventListener('ended', async () => {
+videoElement.addEventListener('ended', () => {
   currentIndex = (currentIndex + 1) % playlist.length
-  await getTodayVideos() // fuerza verificación por si el video ya venció
   playCurrent()
 })
 
+
 const getTodayVideos = async () => {
   const now = new Date().toISOString()
+
   const { data, error } = await supabase
     .from('videos')
-    .select('url')
-    .lte('start_date', now)
-    .gt('end_date', now)
-
-    .order('end_date', { ascending: true })
+    .select('url, start_date, end_date')
+    .lte('start_date', now)  // ya deberían estar disponibles
+    .gt('end_date', now)     // aún no vencidos
+    .order('start_date', { ascending: true })
 
   if (error || !data || data.length === 0) {
     console.warn("Sin videos válidos, usando respaldo.")
