@@ -17,6 +17,7 @@ videoElement.volume = 1.0
 
 let playlist = []
 let currentIndex = 0
+let lastPlaylistRaw = ''
 
 const playCurrent = () => {
   if (playlist.length === 0) {
@@ -38,35 +39,37 @@ videoElement.addEventListener('ended', () => {
   playCurrent()
 })
 
-
-const getTodayVideos = async () => {
+const fetchAndUpdatePlaylist = async () => {
   const now = new Date().toISOString()
 
   const { data, error } = await supabase
     .from('videos')
-    .select('url, start_date, end_date')
-    .lte('start_date', now)  // ya deberían estar disponibles
-    .gt('end_date', now)     // aún no vencidos
+    .select('url')
+    .lte('start_date', now)
+    .gt('end_date', now)
     .order('start_date', { ascending: true })
 
-  if (error || !data || data.length === 0) {
-    console.warn("Sin videos válidos, usando respaldo.")
-    playlist = [isLegacy ? '/tv-player/videos/backup/Tomas asistente.mp4' : '/tv/videos/backup/Tomas asistente.mp4']
-  } else {
-    playlist = data.map(v => v.url)
+  if (error) {
+    console.warn("Error al obtener videos:", error)
+    return
   }
 
-  currentIndex = 0
+  const newUrls = data.map(v => v.url)
+  const newRaw = newUrls.join(',')
+
+  if (newRaw !== lastPlaylistRaw) {
+    playlist = newUrls.length
+      ? newUrls
+      : [isLegacy ? '/tv-player/videos/backup/Tomas asistente.mp4' : '/tv/videos/backup/Tomas asistente.mp4']
+    lastPlaylistRaw = newRaw
+    currentIndex = 0
+    console.log("🔁 Playlist actualizada automáticamente.")
+  }
 }
 
 // Primera carga
-await getTodayVideos()
+await fetchAndUpdatePlaylist()
 playCurrent()
 
-// Actualiza cada 2 minutos si está pausado o terminó
-setInterval(async () => {
-  if (videoElement.paused || videoElement.ended) {
-    await getTodayVideos()
-    console.log("Playlist actualizada automáticamente.")
-  }
-}, 2 * 60 * 1000)
+// Verifica cambios en la playlist cada 60 segundos
+setInterval(fetchAndUpdatePlaylist, 60000)
