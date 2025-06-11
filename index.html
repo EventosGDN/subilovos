@@ -62,12 +62,12 @@
     <h2>Subir video</h2>
     <input type="file" id="videoInput" accept="video/*" />
     <label for="startDate">Inicio:</label>
-    <input type="date" id="startDateDate" required>
-    <input type="time" id="startDateTime" required>
+    <input type="date" id="startDateDate" required step="60">
+    <input type="time" id="startDateTime" required step="60">
 
     <label for="endDate">Fin:</label>
-    <input type="date" id="endDateDate" required>
-    <input type="time" id="endDateTime" required>
+    <input type="date" id="endDateDate" required step="60">
+    <input type="time" id="endDateTime" required step="60">
 
     <button id="uploadBtn">Subir</button>
 
