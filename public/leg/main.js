@@ -67,13 +67,30 @@ function obtenerVideosSupabase(callback) {
   xhr.send()
 }
 
-// Primer intento
-obtenerVideosSupabase(function (urls) {
-  if (urls && urls.length > 0) {
-    playlist = urls
-    currentIndex = 0
-    reproducirVideo(playlist[currentIndex])
-  } else {
-    mostrarBackup()
-  }
-})
+function actualizarPlaylist(callback) {
+  obtenerVideosSupabase(function (urls) {
+    if (urls.length > 0) {
+      var nuevaPlaylist = urls
+      var cambio = JSON.stringify(nuevaPlaylist) !== JSON.stringify(playlist)
+      if (cambio) {
+        playlist = nuevaPlaylist
+        currentIndex = 0
+        reproducirVideo(playlist[currentIndex])
+      }
+    } else {
+      if (playlist.length > 0) {
+        playlist = []
+        mostrarBackup()
+      }
+    }
+    if (typeof callback === 'function') callback()
+  })
+}
+
+// Primera carga
+actualizarPlaylist()
+
+// Verificación periódica cada 30 segundos
+setInterval(function () {
+  actualizarPlaylist()
+}, 30000)
