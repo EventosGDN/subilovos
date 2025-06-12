@@ -4,70 +4,36 @@ var supabase = supabase.createClient(
 )
 
 var videoElement = document.getElementById('videoPlayer')
-var fallback = document.getElementById('fallback')
 videoElement.muted = true
 videoElement.volume = 1.0
 videoElement.setAttribute('playsinline', '')
 videoElement.setAttribute('autoplay', '')
 
-var playlist = []
-var currentIndex = 0
-
-function reproducirActual() {
-  if (playlist.length === 0) {
-    fallback.style.display = 'block'
-    videoElement.removeAttribute('src')
-    videoElement.load()
-    return
-  }
-
-  fallback.style.display = 'none'
-  videoElement.src = playlist[currentIndex]
-  videoElement.load()
-
-  var playPromise = videoElement.play()
-  if (playPromise && typeof playPromise.catch === 'function') {
-    playPromise.catch(function (e) {
-      console.warn("Error al reproducir:", e.message)
-      fallback.style.display = 'block'
-    })
-  }
-}
-
-videoElement.addEventListener('ended', function () {
-  currentIndex = (currentIndex + 1) % playlist.length
-  reproducirActual()
-})
-
-function obtenerVideosActivos(callback) {
-  var ahora = new Date().toISOString()
-  supabase
-    .from('videos')
-    .select('url, start_date, end_date')
-    .lte('start_date', ahora)
-    .gt('end_date', ahora)
-    .order('start_date', { ascending: true })
-    .then(function (res) {
-      if (res.error) {
-        console.warn("❌ Error al consultar Supabase:", res.error)
-        callback([])
-        return
-      }
-      var urls = res.data.map(function (v) { return v.url })
-      callback(urls)
-    })
-}
-
-function iniciarPlaylist() {
-  obtenerVideosActivos(function (urls) {
-    if (!urls || urls.length === 0) {
-      playlist = ['/tv/videos/backup/Tomas asistente.mp4']
-    } else {
-      playlist = urls
+supabase
+  .from('videos')
+  .select('url, start_date, end_date')
+  .then(function (res) {
+    if (res.error) {
+      document.body.innerHTML += '<p style="color:red">Error al consultar Supabase.</p>'
+      return
     }
-    currentIndex = 0
-    reproducirActual()
-  })
-}
 
-iniciarPlaylist()
+    var ahora = new Date().toISOString()
+    var activos = res.data.filter(function (v) {
+      return v.start_date <= ahora && v.end_date > ahora
+    })
+
+    if (activos.length === 0) {
+      document.body.innerHTML += '<p style="color:orange">No hay videos activos.</p>'
+      return
+    }
+
+    videoElement.src = activos[0].url
+    videoElement.load()
+    var playPromise = videoElement.play()
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(function (e) {
+        document.body.innerHTML += '<p style="color:red">Error al reproducir: ' + e.message + '</p>'
+      })
+    }
+  })
