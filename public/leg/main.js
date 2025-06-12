@@ -3,6 +3,9 @@ var fallback = document.getElementById('fallback')
 
 videoElement.muted = true
 videoElement.volume = 1.0
+videoElement.setAttribute('playsinline', '')
+videoElement.setAttribute('autoplay', '')
+videoElement.setAttribute('loop', '')
 
 var videoUrl = '/tv/videos/backup/Tomas asistente.mp4'
 
