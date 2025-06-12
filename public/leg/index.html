@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TV Player Legacy</title>
   <meta name="theme-color" content="#000000" />
+  <style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    height: 100%;
+  }
+  #videoPlayer {
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+  }
+</style>
+
 </head>
 <body>
   <video id="videoPlayer" muted autoplay playsinline preload="auto"></video>
