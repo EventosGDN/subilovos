@@ -1,22 +1,24 @@
-var supabase = supabase.createClient(
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const supabase = createClient(
   'https://wqrkkkqmbrksleagqsli.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY'
 )
 
-var isLegacy = (function () {
-  var ua = navigator.userAgent
-  return ua.indexOf("NETTV") !== -1 || ua.indexOf("Vewd") !== -1 || ua.indexOf("SmartTVA") !== -1 || ua.indexOf("CE-HTML") !== -1
+const isLegacy = (() => {
+  const ua = navigator.userAgent
+  return ua.includes("NETTV") || ua.includes("Vewd") || ua.includes("SmartTVA") || ua.includes("CE-HTML")
 })()
 
-var videoElement = document.getElementById('videoPlayer')
-var fallback = document.getElementById('fallback')
+const videoElement = document.getElementById('videoPlayer')
+const fallback = document.getElementById('fallback')
 videoElement.muted = true
 videoElement.volume = 1.0
 
-var playlist = []
-var currentIndex = 0
+let playlist = []
+let currentIndex = 0
 
-function playCurrent() {
+const playCurrent = () => {
   if (playlist.length === 0) {
     fallback.style.display = 'block'
     videoElement.removeAttribute('src')
@@ -28,59 +30,51 @@ function playCurrent() {
   videoElement.pause()
   videoElement.src = playlist[currentIndex]
   videoElement.load()
-  videoElement.play().catch(function (err) {
-    console.warn("Error al reproducir:", err)
-  })
+  videoElement.play().catch(err => console.warn("Error al reproducir:", err))
 }
 
-videoElement.addEventListener('ended', function () {
+videoElement.addEventListener('ended', () => {
   currentIndex = (currentIndex + 1) % playlist.length
   playCurrent()
 })
 
-function getActiveVideos(callback) {
-  var now = new Date().toISOString()
-  supabase
+const getActiveVideos = async () => {
+  const now = new Date().toISOString()
+  const { data, error } = await supabase
     .from('videos')
     .select('url, start_date, end_date')
     .lte('start_date', now)
     .gt('end_date', now)
     .order('start_date', { ascending: true })
-    .then(function (result) {
-      if (result.error) {
-        console.warn("❌ Error al consultar videos:", result.error)
-        callback([])
-        return
-      }
-      var urls = result.data.map(function (v) { return v.url })
-      callback(urls)
-    })
+
+  if (error) {
+    console.warn("❌ Error al consultar videos:", error)
+    return []
+  }
+
+  return data.map(v => v.url)
 }
 
-function updatePlaylist(callback) {
-  getActiveVideos(function (urls) {
-    if (!urls || urls.length === 0) {
-      playlist = [isLegacy ? '/tv-player/videos/backup/Tomas asistente.mp4' : '/tv/videos/backup/Tomas asistente.mp4']
-    } else {
-      playlist = urls
-    }
-    currentIndex = 0
-    if (typeof callback === 'function') callback()
-  })
+const updatePlaylist = async () => {
+  const urls = await getActiveVideos()
+  if (urls.length === 0) {
+    playlist = [isLegacy ? '/tv-player/videos/backup/Tomas asistente.mp4' : '/tv/videos/backup/Tomas asistente.mp4']
+  } else {
+    playlist = urls
+  }
+  currentIndex = 0
 }
 
-// Primera carga
-updatePlaylist(function () {
-  playCurrent()
-})
+// Primer carga
+await updatePlaylist()
+playCurrent()
 
-// Chequeo continuo (cada 30s)
-setInterval(function () {
-  var wasEmpty = playlist.length === 0 || (playlist[0] && playlist[0].indexOf('/backup/') !== -1)
-  updatePlaylist(function () {
-    if (wasEmpty && playlist.length > 0 && playlist[0].indexOf('/backup/') === -1) {
-      console.log("Nuevo video disponible, iniciando.")
-      playCurrent()
-    }
-  })
+// Chequeo continuo: actualiza lista incluso si el video sigue en curso
+setInterval(async () => {
+  const wasEmpty = playlist.length === 0 || playlist[0].includes('/backup/')
+  await updatePlaylist()
+  if (wasEmpty && playlist.length > 0 && !playlist[0].includes('/backup/')) {
+    console.log("Nuevo video disponible, iniciando.")
+    playCurrent()
+  }
 }, 30000)
