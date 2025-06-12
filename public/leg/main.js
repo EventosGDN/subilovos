@@ -5,7 +5,7 @@ videoElement.muted = true
 videoElement.volume = 1.0
 videoElement.setAttribute('playsinline', '')
 videoElement.setAttribute('autoplay', '')
-videoElement.setAttribute('loop', '')
+// No usamos 'loop' por incompatibilidad
 
 var videoUrl = '/tv/videos/backup/Tomas asistente.mp4'
 
@@ -21,5 +21,11 @@ function reproducir() {
     })
   }
 }
+
+// Cuando termina, vuelve a empezar manualmente
+videoElement.addEventListener('ended', function () {
+  videoElement.currentTime = 0
+  videoElement.play()
+})
 
 reproducir()
