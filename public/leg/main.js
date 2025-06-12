@@ -1,8 +1,3 @@
-var supabase = supabase.createClient(
-  'https://wqrkkkqmbrksleagqsli.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY'
-)
-
 var videoElement = document.getElementById('videoPlayer')
 var fallback = document.getElementById('fallback')
 
@@ -11,72 +6,68 @@ videoElement.volume = 1.0
 videoElement.setAttribute('playsinline', '')
 videoElement.setAttribute('autoplay', '')
 
-var playlist = []
-var currentIndex = 0
+var BACKUP_URL = '/tv/videos/backup/Tomas asistente.mp4'
 
-function reproducir() {
-  if (playlist.length === 0) {
-    mostrarBackup()
-    return
-  }
-
+function reproducirVideo(url) {
   fallback.style.display = 'none'
-  videoElement.src = playlist[currentIndex]
+  videoElement.src = url
   videoElement.load()
-  var playPromise = videoElement.play()
-  if (playPromise && typeof playPromise.catch === 'function') {
-    playPromise.catch(function (e) {
-      fallback.style.display = 'block'
-      document.body.innerHTML += '<p style="color:red">Error al reproducir: ' + e.message + '</p>'
-    })
-  }
+  videoElement.play().catch(function () {
+    mostrarBackup()
+  })
 }
 
 function mostrarBackup() {
   fallback.style.display = 'none'
-  videoElement.src = '/tv/videos/backup/Tomas asistente.mp4'
+  videoElement.src = BACKUP_URL
   videoElement.load()
   videoElement.play()
 }
 
 videoElement.addEventListener('ended', function () {
-  currentIndex = (currentIndex + 1) % playlist.length
-  reproducir()
+  videoElement.currentTime = 0
+  videoElement.play()
 })
 
-function obtenerVideosValidos(callback) {
+function obtenerVideosSupabase(callback) {
+  var xhr = new XMLHttpRequest()
   var ahora = new Date().toISOString()
-  supabase
-    .from('videos')
-    .select('url, start_date, end_date')
-    .lte('start_date', ahora)
-    .gt('end_date', ahora)
-    .order('start_date', { ascending: true })
-    .then(function (resultado) {
-      if (resultado.error) {
-        console.warn('Error al obtener videos:', resultado.error)
-        callback([])
+  var url = 'https://wqrkkkqmbrksleagqsli.supabase.co/rest/v1/videos?select=url,start_date,end_date' +
+            '&start_date=lte.' + encodeURIComponent(ahora) +
+            '&end_date=gt.' + encodeURIComponent(ahora) +
+            '&order=start_date.asc'
+
+  xhr.open('GET', url, true)
+  xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
+  xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
+
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        try {
+          var respuesta = JSON.parse(xhr.responseText)
+          if (respuesta.length > 0) {
+            callback(respuesta[0].url)
+          } else {
+            callback(null)
+          }
+        } catch (e) {
+          callback(null)
+        }
       } else {
-        var urls = resultado.data.map(function (v) { return v.url })
-        callback(urls)
+        callback(null)
       }
-    })
-}
-
-function actualizarPlaylist() {
-  obtenerVideosValidos(function (urls) {
-    if (!urls || urls.length === 0) {
-      playlist = []
-    } else {
-      playlist = urls
     }
-    currentIndex = 0
-    reproducir()
-  })
+  }
+
+  xhr.send()
 }
 
-// Primera carga
-actualizarPlaylist()
-
-// Actualiza cada 60 segundos
-setInterval(actualizarPlaylist, 60000)
+// Primer intento
+obtenerVideosSupabase(function (url) {
+  if (url) {
+    reproducirVideo(url)
+  } else {
+    mostrarBackup()
+  }
+})
