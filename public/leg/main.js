@@ -9,14 +9,13 @@ videoElement.setAttribute('autoplay', '')
 var BACKUP_URL = '/tv/videos/backup/Tomas asistente.mp4'
 var playlist = []
 var currentIndex = 0
+var videoBuffer = document.createElement('video') // No se agrega al DOM
 
 function reproducirVideo(url) {
   fallback.style.display = 'none'
   videoElement.src = url
   videoElement.load()
-  videoElement.play().catch(function () {
-    mostrarBackup()
-  })
+  videoElement.play().catch(mostrarBackup)
 }
 
 function mostrarBackup() {
@@ -25,6 +24,21 @@ function mostrarBackup() {
   videoElement.load()
   videoElement.play()
 }
+
+function precargarSiguiente() {
+  if (playlist.length > 1) {
+    var siguienteIndex = (currentIndex + 1) % playlist.length
+    var siguienteUrl = playlist[siguienteIndex]
+    videoBuffer.src = siguienteUrl
+    videoBuffer.load()
+  }
+}
+
+videoElement.addEventListener('timeupdate', function () {
+  if (playlist.length > 1 && videoElement.duration - videoElement.currentTime < 2) {
+    precargarSiguiente()
+  }
+})
 
 videoElement.addEventListener('ended', function () {
   if (playlist.length > 0) {
@@ -45,8 +59,8 @@ function obtenerVideosSupabase(callback) {
             '&order=start_date.asc'
 
   xhr.open('GET', url, true)
-  xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
-  xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
+  xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')
+  xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')
 
   xhr.onreadystatechange = function () {
     if (xhr.readyState === 4) {
@@ -87,10 +101,5 @@ function actualizarPlaylist(callback) {
   })
 }
 
-// Primera carga
 actualizarPlaylist()
-
-// Verificación periódica cada 30 segundos
-setInterval(function () {
-  actualizarPlaylist()
-}, 30000)
+setInterval(actualizarPlaylist, 30000)
