@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: video-converter
+    env: node
+    plan: free
+    buildCommand: cd video-converter && npm install
+    startCommand: cd video-converter && node server.js
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
