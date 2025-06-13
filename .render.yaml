@@ -4,7 +4,8 @@ services:
     env: node
     plan: free
     buildCommand: cd video-converter && npm install
-    startCommand: cd video-converter && node server.js
+    startCommand: node server.js
+    rootDir: video-converter
     envVars:
       - key: SUPABASE_URL
         sync: false
