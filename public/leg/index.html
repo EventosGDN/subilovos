@@ -36,10 +36,8 @@
 
 </head>
 <body>
-  <video id="videoA" muted playsinline autoplay preload="auto" style="position:absolute; width:100%; height:100%; object-fit:cover;"></video>
-<video id="videoB" muted playsinline preload="auto" style="display:none; position:absolute; width:100%; height:100%; object-fit:cover;"></video>
-<div id="fallback" style="display:none; color:white; text-align:center; padding-top:20px;">No se pudieron cargar videos.</div>
-
+  <video id="videoPlayer" muted autoplay playsinline preload="auto"></video>
+  <div id="fallback" style="display: none;">No se pudieron cargar videos programados.</div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/umd/supabase.js"></script>
 <script src="main.js"></script>
