@@ -1,5 +1,6 @@
 var videoElement = document.getElementById('videoPlayer')
 var fallback = document.getElementById('fallback')
+var backgroundImage = document.getElementById('backgroundImage')
 
 videoElement.muted = true
 videoElement.volume = 1.0
@@ -12,15 +13,18 @@ var currentIndex = 0
 
 function reproducirVideo(url) {
   fallback.style.display = 'none'
+  backgroundImage.style.display = 'block' // muestra fondo antes de cargar
   videoElement.src = url
   videoElement.load()
-  videoElement.play().catch(function () {
-    mostrarBackup()
-  })
+  videoElement.oncanplay = function () {
+    backgroundImage.style.display = 'none' // oculta fondo al reproducir
+    videoElement.play().catch(() => mostrarBackup())
+  }
 }
 
 function mostrarBackup() {
   fallback.style.display = 'none'
+  backgroundImage.style.display = 'none'
   videoElement.src = BACKUP_URL
   videoElement.load()
   videoElement.play()
@@ -45,15 +49,15 @@ function obtenerVideosSupabase(callback) {
             '&order=start_date.asc'
 
   xhr.open('GET', url, true)
-  xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
-  xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
+  xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')
+  xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')
 
   xhr.onreadystatechange = function () {
     if (xhr.readyState === 4) {
       if (xhr.status === 200) {
         try {
           var respuesta = JSON.parse(xhr.responseText)
-          var urls = respuesta.map(function (v) { return v.url })
+          var urls = respuesta.map(v => v.url)
           callback(urls)
         } catch (e) {
           callback([])
@@ -90,7 +94,5 @@ function actualizarPlaylist(callback) {
 // Primera carga
 actualizarPlaylist()
 
-// Verificación periódica cada 30 segundos
-setInterval(function () {
-  actualizarPlaylist()
-}, 30000)
+// Revisa cada 30s si hay cambios
+setInterval(actualizarPlaylist, 30000)
