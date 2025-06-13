@@ -9,6 +9,7 @@ videoElement.setAttribute('autoplay', '')
 var BACKUP_URL = '/tv/videos/backup/Tomas asistente.mp4'
 var playlist = []
 var currentIndex = 0
+var videoPreload = null
 
 function reproducirVideo(url) {
   fallback.style.display = 'none'
@@ -27,14 +28,21 @@ function mostrarBackup() {
 }
 
 videoElement.addEventListener('ended', function () {
-  if (playlist.length > 0) {
-    currentIndex = (currentIndex + 1) % playlist.length
-    reproducirVideo(playlist[currentIndex])
-  } else {
-    videoElement.currentTime = 0
-    videoElement.play()
-  }
+  currentIndex = (currentIndex + 1) % playlist.length
+  reproducirVideo(playlist[currentIndex])
+  prepararSiguiente()
 })
+
+function prepararSiguiente() {
+  if (playlist.length < 2) return
+
+  var siguiente = (currentIndex + 1) % playlist.length
+  videoPreload = document.createElement('video')
+  videoPreload.preload = 'auto'
+  videoPreload.src = playlist[siguiente]
+  // Sin reproducir, solo para cachear
+  videoPreload.load()
+}
 
 function obtenerVideosSupabase(callback) {
   var xhr = new XMLHttpRequest()
@@ -76,6 +84,7 @@ function actualizarPlaylist(callback) {
         playlist = nuevaPlaylist
         currentIndex = 0
         reproducirVideo(playlist[currentIndex])
+        prepararSiguiente()
       }
     } else {
       if (playlist.length > 0) {
@@ -90,7 +99,7 @@ function actualizarPlaylist(callback) {
 // Primera carga
 actualizarPlaylist()
 
-// Verificación periódica cada 30 segundos
+// Verificación cada 30 segundos
 setInterval(function () {
   actualizarPlaylist()
 }, 30000)
