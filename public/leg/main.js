@@ -1,10 +1,14 @@
 var videoElement = document.getElementById('videoPlayer')
+var background = document.getElementById('backgroundVideo')
 var fallback = document.getElementById('fallback')
 
 videoElement.muted = true
 videoElement.volume = 1.0
 videoElement.setAttribute('playsinline', '')
 videoElement.setAttribute('autoplay', '')
+
+background.src = '/tv/videos/backup/sabemos de ofertas.mp4'
+background.load()
 
 var BACKUP_URL = '/tv/videos/backup/Tomas asistente.mp4'
 var playlist = []
