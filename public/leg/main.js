@@ -1,38 +1,51 @@
-var videoElement = document.getElementById('videoPlayer')
+var videoA = document.getElementById('videoA')
+var videoB = document.getElementById('videoB')
 var fallback = document.getElementById('fallback')
-
-videoElement.muted = true
-videoElement.volume = 1.0
-videoElement.setAttribute('playsinline', '')
-videoElement.setAttribute('autoplay', '')
 
 var BACKUP_URL = '/tv/videos/backup/Tomas asistente.mp4'
 var playlist = []
 var currentIndex = 0
+var currentPlayer = videoA
+var nextPlayer = videoB
+
+videoA.muted = videoB.muted = true
+videoA.volume = videoB.volume = 1.0
+videoA.setAttribute('playsinline', '')
+videoB.setAttribute('playsinline', '')
+videoA.setAttribute('autoplay', '')
+videoB.setAttribute('autoplay', '')
 
 function reproducirVideo(url) {
   fallback.style.display = 'none'
-  videoElement.src = url
-  videoElement.load()
-  videoElement.play().catch(function () {
-    mostrarBackup()
-  })
+
+  nextPlayer.src = url
+  nextPlayer.load()
+
+  nextPlayer.oncanplay = function () {
+    currentPlayer.style.display = 'none'
+    nextPlayer.style.display = 'block'
+    nextPlayer.play().catch(mostrarBackup)
+
+    var temp = currentPlayer
+    currentPlayer = nextPlayer
+    nextPlayer = temp
+  }
 }
 
 function mostrarBackup() {
   fallback.style.display = 'none'
-  videoElement.src = BACKUP_URL
-  videoElement.load()
-  videoElement.play()
+  currentPlayer.src = BACKUP_URL
+  currentPlayer.load()
+  currentPlayer.play()
 }
 
-videoElement.addEventListener('ended', function () {
+currentPlayer.addEventListener('ended', function () {
   if (playlist.length > 0) {
     currentIndex = (currentIndex + 1) % playlist.length
     reproducirVideo(playlist[currentIndex])
   } else {
-    videoElement.currentTime = 0
-    videoElement.play()
+    currentPlayer.currentTime = 0
+    currentPlayer.play()
   }
 })
 
@@ -49,18 +62,15 @@ function obtenerVideosSupabase(callback) {
   xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
 
   xhr.onreadystatechange = function () {
-    if (xhr.readyState === 4) {
-      if (xhr.status === 200) {
-        try {
-          var respuesta = JSON.parse(xhr.responseText)
-          var urls = respuesta.map(function (v) { return v.url })
-          callback(urls)
-        } catch (e) {
-          callback([])
-        }
-      } else {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      try {
+        var data = JSON.parse(xhr.responseText)
+        callback(data.map(v => v.url))
+      } catch (e) {
         callback([])
       }
+    } else if (xhr.readyState === 4) {
+      callback([])
     }
   }
 
@@ -70,10 +80,9 @@ function obtenerVideosSupabase(callback) {
 function actualizarPlaylist(callback) {
   obtenerVideosSupabase(function (urls) {
     if (urls.length > 0) {
-      var nuevaPlaylist = urls
-      var cambio = JSON.stringify(nuevaPlaylist) !== JSON.stringify(playlist)
+      var cambio = JSON.stringify(urls) !== JSON.stringify(playlist)
       if (cambio) {
-        playlist = nuevaPlaylist
+        playlist = urls
         currentIndex = 0
         reproducirVideo(playlist[currentIndex])
       }
@@ -83,14 +92,9 @@ function actualizarPlaylist(callback) {
         mostrarBackup()
       }
     }
-    if (typeof callback === 'function') callback()
+    if (callback) callback()
   })
 }
 
-// Primera carga
 actualizarPlaylist()
-
-// Verificación periódica cada 30 segundos
-setInterval(function () {
-  actualizarPlaylist()
-}, 30000)
+setInterval(actualizarPlaylist, 30000)
