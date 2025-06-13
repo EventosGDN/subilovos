@@ -15,13 +15,15 @@
       width: 100%;
     }
 
-    #backgroundVideo, #videoPlayer {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+   #backgroundImage {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
 
     #videoPlayer {
       z-index: 2;
@@ -40,7 +42,7 @@
 </head>
 <body>
   <!-- Video de fondo continuo -->
-  <video id="backgroundVideo" src="/tv/videos/backup/sabemos de ofertas.mp4" autoplay muted loop playsinline></video>
+ <img id="backgroundImage" src="public/tv/videos/backup/sabemos de of.png" alt="Fondo" />
 
   <!-- Video principal -->
   <video id="videoPlayer" muted autoplay playsinline preload="auto"></video>
@@ -49,10 +51,10 @@
 
   <script src="main.js"></script>
 
-  <script>
+  <!-- <script>
     document.addEventListener('DOMContentLoaded', function () {
       document.body.insertAdjacentHTML('beforeend', '<p style="color:white;position:absolute;bottom:0;left:0;z-index:4">TV Legacy cargado</p>');
     });
-  </script>
+  </script> -->
 </body>
 </html>
