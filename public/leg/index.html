@@ -5,53 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TV Legacy</title>
   <meta name="theme-color" content="#000000" />
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: black;
-      height: 100%;
-      width: 100%;
-    }
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: black;
+    height: 100%;
+    width: 100%;
+  }
 
-    #backgroundImage {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 1;
-      display: none; /* oculta por defecto */
-    }
+  video {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 
-    video {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 2;
-    }
+  #fallback {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 1.5rem;
+  }
+</style>
 
-    #fallback {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 1.5rem;
-      z-index: 3;
-    }
-  </style>
+
 </head>
 <body>
-  <img id="backgroundImage" src="/tv/videos/backup/sabemos-de-ofertas.png" alt="Fondo">
-
   <video id="videoPlayer" muted autoplay playsinline preload="auto"></video>
-
   <div id="fallback" style="display: none;">No se pudieron cargar videos programados.</div>
 
-  <script src="main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/umd/supabase.js"></script>
+<script src="main.js"></script>
+
+<!-- <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.body.style.background = '#000';
+    document.body.insertAdjacentHTML('beforeend', '<p style="color:white">TV Legacy cargado</p>');
+  });
+</script> -->
+
 </body>
 </html>
