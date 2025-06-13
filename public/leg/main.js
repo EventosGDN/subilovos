@@ -1,3 +1,4 @@
+
 var videoElement = document.getElementById('videoPlayer')
 var fallback = document.getElementById('fallback')
 
@@ -9,6 +10,7 @@ videoElement.setAttribute('autoplay', '')
 var BACKUP_URL = '/tv/videos/backup/Tomas asistente.mp4'
 var playlist = []
 var currentIndex = 0
+var preloaded = false
 
 function reproducirVideo(url) {
   fallback.style.display = 'none'
@@ -29,10 +31,26 @@ function mostrarBackup() {
 videoElement.addEventListener('ended', function () {
   if (playlist.length > 0) {
     currentIndex = (currentIndex + 1) % playlist.length
+    preloaded = false
     reproducirVideo(playlist[currentIndex])
   } else {
     videoElement.currentTime = 0
     videoElement.play()
+  }
+})
+
+// Precarga anticipada
+videoElement.addEventListener('timeupdate', function () {
+  if (
+    playlist.length > 1 &&
+    !preloaded &&
+    videoElement.duration - videoElement.currentTime < 1.5
+  ) {
+    var siguiente = (currentIndex + 1) % playlist.length
+    var preload = document.createElement('video')
+    preload.src = playlist[siguiente]
+    preload.load()
+    preloaded = true
   }
 })
 
