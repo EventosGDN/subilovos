@@ -27,11 +27,12 @@ function mostrarBackup() {
 }
 
 videoElement.addEventListener('ended', function () {
-  currentIndex = (currentIndex + 1) % playlist.length
   if (playlist.length > 0) {
+    currentIndex = (currentIndex + 1) % playlist.length
     reproducirVideo(playlist[currentIndex])
   } else {
-    mostrarBackup()
+    videoElement.currentTime = 0
+    videoElement.play()
   }
 })
 
@@ -44,8 +45,8 @@ function obtenerVideosSupabase(callback) {
             '&order=start_date.asc'
 
   xhr.open('GET', url, true)
-  xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')
-  xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')
+  xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
+  xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
 
   xhr.onreadystatechange = function () {
     if (xhr.readyState === 4) {
@@ -69,36 +70,27 @@ function obtenerVideosSupabase(callback) {
 function actualizarPlaylist(callback) {
   obtenerVideosSupabase(function (urls) {
     if (urls.length > 0) {
-      var cambio = JSON.stringify(urls) !== JSON.stringify(playlist)
-      playlist = urls
-      if (typeof callback === 'function') callback(true, cambio)
+      var nuevaPlaylist = urls
+      var cambio = JSON.stringify(nuevaPlaylist) !== JSON.stringify(playlist)
+      if (cambio) {
+        playlist = nuevaPlaylist
+        currentIndex = 0
+        reproducirVideo(playlist[currentIndex])
+      }
     } else {
-      playlist = []
-      if (typeof callback === 'function') callback(false, false)
+      if (playlist.length > 0) {
+        playlist = []
+        mostrarBackup()
+      }
     }
+    if (typeof callback === 'function') callback()
   })
 }
 
-// Primer inicio
-actualizarPlaylist(function (hayVideos) {
-  if (hayVideos) {
-    currentIndex = 0
-    reproducirVideo(playlist[currentIndex])
-  } else {
-    mostrarBackup()
-  }
-})
+// Primera carga
+actualizarPlaylist()
 
-// Cada 30s verifica si vencieron y recarga lista SOLO si hay cambio
+// Verificación periódica cada 30 segundos
 setInterval(function () {
-  actualizarPlaylist(function (hayVideos, cambio) {
-    if (!hayVideos) {
-      mostrarBackup()
-    }
-    // Solo reinicia si hay un cambio real en la lista
-    else if (cambio) {
-      currentIndex = 0
-      reproducirVideo(playlist[currentIndex])
-    }
-  })
+  actualizarPlaylist()
 }, 30000)
