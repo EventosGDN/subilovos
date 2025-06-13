@@ -1,4 +1,3 @@
-
 var videoElement = document.getElementById('videoPlayer')
 var fallback = document.getElementById('fallback')
 
@@ -10,7 +9,6 @@ videoElement.setAttribute('autoplay', '')
 var BACKUP_URL = '/tv/videos/backup/Tomas asistente.mp4'
 var playlist = []
 var currentIndex = 0
-var preloaded = false
 
 function reproducirVideo(url) {
   fallback.style.display = 'none'
@@ -29,28 +27,11 @@ function mostrarBackup() {
 }
 
 videoElement.addEventListener('ended', function () {
+  currentIndex = (currentIndex + 1) % playlist.length
   if (playlist.length > 0) {
-    currentIndex = (currentIndex + 1) % playlist.length
-    preloaded = false
     reproducirVideo(playlist[currentIndex])
   } else {
-    videoElement.currentTime = 0
-    videoElement.play()
-  }
-})
-
-// Precarga anticipada
-videoElement.addEventListener('timeupdate', function () {
-  if (
-    playlist.length > 1 &&
-    !preloaded &&
-    videoElement.duration - videoElement.currentTime < 1.5
-  ) {
-    var siguiente = (currentIndex + 1) % playlist.length
-    var preload = document.createElement('video')
-    preload.src = playlist[siguiente]
-    preload.load()
-    preloaded = true
+    mostrarBackup()
   }
 })
 
@@ -63,8 +44,8 @@ function obtenerVideosSupabase(callback) {
             '&order=start_date.asc'
 
   xhr.open('GET', url, true)
-  xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
-  xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
+  xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')
+  xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')
 
   xhr.onreadystatechange = function () {
     if (xhr.readyState === 4) {
@@ -88,27 +69,30 @@ function obtenerVideosSupabase(callback) {
 function actualizarPlaylist(callback) {
   obtenerVideosSupabase(function (urls) {
     if (urls.length > 0) {
-      var nuevaPlaylist = urls
-      var cambio = JSON.stringify(nuevaPlaylist) !== JSON.stringify(playlist)
-      if (cambio) {
-        playlist = nuevaPlaylist
-        currentIndex = 0
-        reproducirVideo(playlist[currentIndex])
-      }
+      playlist = urls
+      if (typeof callback === 'function') callback(true)
     } else {
-      if (playlist.length > 0) {
-        playlist = []
-        mostrarBackup()
-      }
+      playlist = []
+      if (typeof callback === 'function') callback(false)
     }
-    if (typeof callback === 'function') callback()
   })
 }
 
-// Primera carga
-actualizarPlaylist()
-
-// Verificación periódica cada 30 segundos
+// Verifica si el video actual sigue siendo válido cada 15 segundos
 setInterval(function () {
-  actualizarPlaylist()
-}, 30000)
+  actualizarPlaylist(function (hayVideos) {
+    if (!hayVideos) {
+      mostrarBackup()
+    }
+  })
+}, 15000)
+
+// Inicio
+actualizarPlaylist(function (hayVideos) {
+  if (hayVideos) {
+    currentIndex = 0
+    reproducirVideo(playlist[currentIndex])
+  } else {
+    mostrarBackup()
+  }
+})
