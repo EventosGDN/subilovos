@@ -54,6 +54,10 @@ function obtenerVideosSupabase(callback) {
         try {
           var respuesta = JSON.parse(xhr.responseText)
           console.log("Respuesta cruda Supabase:", respuesta)
+          respuesta.forEach(function (v, i) {
+  console.log("Video", i, "- URL:", v.url, "| start:", v.start_date, "| end:", v.end_date)
+})
+
 
           var urls = respuesta.map(function (v) { return v.url })
           callback(urls)
