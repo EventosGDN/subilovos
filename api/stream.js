@@ -19,10 +19,11 @@ export default async function handler(req, res) {
       return res.status(response.status).send('No se pudo obtener el video')
     }
 
-    res.setHeader('Content-Type', 'video/mp4')
-    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
+    const buffer = await response.arrayBuffer()
+res.setHeader('Content-Type', 'video/mp4')
+res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
+res.end(Buffer.from(buffer))
 
-    response.body.pipe(res)
   } catch (err) {
     res.status(500).send('Error interno')
   }
