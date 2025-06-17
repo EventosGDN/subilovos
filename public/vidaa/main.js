@@ -15,26 +15,22 @@ function reproducirVideo(url) {
   videoElement.src = url
   videoElement.load()
 
+  // Forzar autoplay sin sonido
+  videoElement.muted = true
+  videoElement.volume = 0
+  videoElement.setAttribute('muted', 'true')
+
   setTimeout(function () {
-    // En algunos TVs `muted = false` es obligatorio
-    videoElement.muted = false
-    videoElement.volume = 1.0
-
-    const intento = () => {
-      var playPromise = videoElement.play()
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(function (e) {
-          console.log("Fallo reproducción. Motivo:", e.message)
-          mostrarBackup()
-        })
-      }
+    const playPromise = videoElement.play()
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(function (e) {
+        console.log("Fallo reproducción. Motivo:", e.message)
+        mostrarBackup()
+      })
     }
-
-    // Un doble intento puede ayudar en Slimjet
-    intento()
-    setTimeout(intento, 500)
   }, 500)
 }
+
 
 
 
