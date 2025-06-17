@@ -14,10 +14,18 @@ function reproducirVideo(url) {
   fallback.style.display = 'none'
   videoElement.src = url
   videoElement.load()
-  videoElement.play().catch(function () {
-    mostrarBackup()
-  })
+
+  setTimeout(function () {
+    var playPromise = videoElement.play()
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(function (e) {
+        console.log("Fallo reproducción. Motivo:", e.message)
+        mostrarBackup()
+      })
+    }
+  }, 500) // pequeño delay para evitar play() demasiado pronto
 }
+
 
 function mostrarBackup() {
   fallback.style.display = 'none'
