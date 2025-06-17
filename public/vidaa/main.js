@@ -53,6 +53,8 @@ function obtenerVideosSupabase(callback) {
       if (xhr.status === 200) {
         try {
           var respuesta = JSON.parse(xhr.responseText)
+          console.log("Respuesta cruda Supabase:", respuesta)
+
           var urls = respuesta.map(function (v) { return v.url })
           callback(urls)
         } catch (e) {
