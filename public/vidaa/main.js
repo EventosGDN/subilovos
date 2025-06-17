@@ -75,9 +75,9 @@ function obtenerVideosSupabase(callback) {
 
 
           var urls = respuesta.map(function (v) {
-  var nombre = v.url.split('/').pop()
-  return '/api/stream?file=' + nombre
+  return v.url
 })
+
 
           callback(urls)
         } catch (e) {
