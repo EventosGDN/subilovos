@@ -16,15 +16,26 @@ function reproducirVideo(url) {
   videoElement.load()
 
   setTimeout(function () {
-    var playPromise = videoElement.play()
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch(function (e) {
-        console.log("Fallo reproducción. Motivo:", e.message)
-        mostrarBackup()
-      })
+    // En algunos TVs `muted = false` es obligatorio
+    videoElement.muted = false
+    videoElement.volume = 1.0
+
+    const intento = () => {
+      var playPromise = videoElement.play()
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(function (e) {
+          console.log("Fallo reproducción. Motivo:", e.message)
+          mostrarBackup()
+        })
+      }
     }
-  }, 500) // pequeño delay para evitar play() demasiado pronto
+
+    // Un doble intento puede ayudar en Slimjet
+    intento()
+    setTimeout(intento, 500)
+  }, 500)
 }
+
 
 
 function mostrarBackup() {
