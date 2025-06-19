@@ -2,7 +2,7 @@ var videoElement = document.getElementById('videoPlayer')
 var fallback = document.getElementById('fallback')
 
 videoElement.muted = true
-videoElement.volume = 1.0
+videoElement.volume = 0
 videoElement.setAttribute('playsinline', '')
 videoElement.setAttribute('autoplay', '')
 videoElement.setAttribute('muted', 'true')
@@ -12,9 +12,7 @@ var playlist = []
 var currentIndex = 0
 
 function mostrarVideo() {
-  if (videoElement.style.display !== 'block') {
-    videoElement.style.display = 'block'
-  }
+  videoElement.style.display = 'block'
 }
 
 function reproducirVideo(url) {
@@ -22,20 +20,12 @@ function reproducirVideo(url) {
   videoElement.style.display = 'none'
   videoElement.src = url
   videoElement.load()
-  videoElement.muted = true
-  videoElement.volume = 0
 
-  setTimeout(function () {
-    const playPromise = videoElement.play()
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch(function (e) {
-        console.log("Fallo reproducción. Motivo:", e.message)
-        mostrarBackup()
-      })
-    } else {
-      mostrarVideo()
-    }
-  }, 500)
+  videoElement.oncanplay = function () {
+    videoElement.play().then(mostrarVideo).catch(function () {
+      mostrarBackup()
+    })
+  }
 }
 
 function mostrarBackup() {
@@ -43,9 +33,12 @@ function mostrarBackup() {
   videoElement.style.display = 'none'
   videoElement.src = BACKUP_URL
   videoElement.load()
-  setTimeout(() => {
-    videoElement.play().then(() => mostrarVideo())
-  }, 500)
+
+  videoElement.oncanplay = function () {
+    videoElement.play().then(mostrarVideo).catch(function () {
+      fallback.style.display = 'block'
+    })
+  }
 }
 
 videoElement.addEventListener('ended', function () {
@@ -103,13 +96,14 @@ function actualizarPlaylist(callback) {
       if (playlist.length > 0) {
         playlist = []
         mostrarBackup()
+      } else {
+        mostrarBackup()
       }
     }
+
     if (typeof callback === 'function') callback()
   })
 }
 
 actualizarPlaylist()
-setInterval(function () {
-  actualizarPlaylist()
-}, 30000)
+setInterval(actualizarPlaylist, 30000)
