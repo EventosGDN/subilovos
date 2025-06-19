@@ -11,34 +11,29 @@ var BACKUP_URL = '/tv/videos/backup/Tomas asistente.mp4'
 var playlist = []
 var currentIndex = 0
 
-function mostrarVideo() {
-  videoElement.style.display = 'block'
-}
-
 function reproducirVideo(url) {
   fallback.style.display = 'none'
-  videoElement.style.display = 'none'
   videoElement.src = url
   videoElement.load()
 
-  videoElement.oncanplay = function () {
-    videoElement.play().then(mostrarVideo).catch(function () {
-      mostrarBackup()
-    })
-  }
+  setTimeout(function () {
+    const playPromise = videoElement.play()
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(function (e) {
+        console.log("Fallo reproducción. Motivo:", e.message)
+        mostrarBackup()
+      })
+    }
+  }, 500)
 }
 
 function mostrarBackup() {
   fallback.style.display = 'none'
-  videoElement.style.display = 'none'
   videoElement.src = BACKUP_URL
   videoElement.load()
-
-  videoElement.oncanplay = function () {
-    videoElement.play().then(mostrarVideo).catch(function () {
-      fallback.style.display = 'block'
-    })
-  }
+  setTimeout(() => {
+    videoElement.play().catch(() => {})
+  }, 500)
 }
 
 videoElement.addEventListener('ended', function () {
@@ -60,8 +55,8 @@ function obtenerVideosSupabase(callback) {
             '&order=start_date.asc'
 
   xhr.open('GET', url, true)
-  xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
-  xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxcmtra3FtYnJrc2xlYWdxc2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNTA1OTMsImV4cCI6MjA2NDYyNjU5M30.XNGR57FM29Zxskyzb8xeXLrBtH0cnco9yh5X8Sb4ISY')
+  xhr.setRequestHeader('apikey', 'TU_API_KEY')
+  xhr.setRequestHeader('Authorization', 'Bearer TU_TOKEN')
 
   xhr.onreadystatechange = function () {
     if (xhr.readyState === 4) {
@@ -96,14 +91,13 @@ function actualizarPlaylist(callback) {
       if (playlist.length > 0) {
         playlist = []
         mostrarBackup()
-      } else {
-        mostrarBackup()
       }
     }
-
     if (typeof callback === 'function') callback()
   })
 }
 
 actualizarPlaylist()
-setInterval(actualizarPlaylist, 30000)
+setInterval(function () {
+  actualizarPlaylist()
+}, 30000)
