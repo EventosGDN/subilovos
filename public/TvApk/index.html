@@ -9,20 +9,11 @@
     html, body {
       margin: 0;
       padding: 0;
-      background: black;
+      background: #000 url('/tv/videos/backup/SDO.png') center center no-repeat;
+      background-size: contain;
       height: 100%;
       width: 100%;
       overflow: hidden;
-    }
-
-    #backgroundImage {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 1;
     }
 
     video {
@@ -34,7 +25,6 @@
       object-fit: contain;
       z-index: 2;
       background-color: transparent;
-      display: none;
     }
 
     #fallback {
@@ -46,12 +36,68 @@
       font-size: 1.5rem;
       z-index: 3;
     }
+
+    .flechas-lado {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 30px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .flechas-lado img {
+      width: 100%;
+      opacity: 0.6;
+      animation: subirBajar 2s infinite ease-in-out;
+    }
+
+    .flechas-lado.izquierda {
+      left: 10px;
+    }
+
+    .flechas-lado.derecha {
+      right: 10px;
+      transform: scaleY(-1); /* flechas bajando */
+    }
+
+    @keyframes subirBajar {
+      0%, 100% { transform: translateY(0); opacity: 0.3; }
+      50% { transform: translateY(-10px); opacity: 1; }
+    }
   </style>
 </head>
 <body>
-  <img id="backgroundImage" src="/tv/videos/backup/SDO.png" alt="Fondo" />
+  <!-- Flechas -->
+  <div class="flechas-lado izquierda">
+    <img src="/tv/videos/backup/circunblanco.png" />
+    <img src="/tv/videos/backup/circunblanco.png" />
+    <img src="/tv/videos/backup/circunblanco.png" />
+    <img src="/tv/videos/backup/circunblanco.png" />
+    <img src="/tv/videos/backup/circunblanco.png" />
+    <img src="/tv/videos/backup/circunblanco.png" />
+    <img src="/tv/videos/backup/circunblanco.png" />
+  </div>
+  <div class="flechas-lado derecha">
+    <img src="/tv/videos/backup/circunblanco.png" />
+    <img src="/tv/videos/backup/circunblanco.png" />
+    <img src="/tv/videos/backup/circunblanco.png" />
+    <img src="/tv/videos/backup/circunblanco.png" />
+    <img src="/tv/videos/backup/circunblanco.png" />
+    <img src="/tv/videos/backup/circunblanco.png" />
+    <img src="/tv/videos/backup/circunblanco.png" />
+  </div>
+
+  <!-- Video -->
   <video id="videoPlayer" muted autoplay playsinline preload="auto"></video>
+
+  <!-- Fallback -->
   <div id="fallback" style="display: none;">No se pudieron cargar videos programados.</div>
+
+  <!-- Script -->
   <script src="main.js"></script>
 </body>
 </html>
