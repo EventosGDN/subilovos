@@ -2,66 +2,56 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TvApk</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SubiloVos TV Apk</title>
+  <meta name="theme-color" content="#000000" />
   <style>
-    body {
+    html, body {
       margin: 0;
-      background: #000 url('/tv/videos/backup/SDO.png') no-repeat center center;
-      background-size: cover;
+      padding: 0;
+      background: black;
+      height: 100%;
+      width: 100%;
       overflow: hidden;
     }
 
-    #videoPlayer {
+    #backgroundImage {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      z-index: 2;
+      background-color: transparent;
+      display: none;
+    }
+
+    #fallback {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
-
-    .flecha {
-      position: absolute;
-      width: 30px;
-      height: auto;
-      opacity: 0.6;
-      animation: mover 3s linear infinite;
-      z-index: 1;
-    }
-
-    .flecha.izquierda {
-      left: 10px;
-      top: 0;
-      bottom: 0;
-      margin: auto;
-      animation-direction: normal;
-    }
-
-    .flecha.derecha {
-      right: 10px;
-      top: 0;
-      bottom: 0;
-      margin: auto;
-      animation-direction: reverse;
-    }
-
-    @keyframes mover {
-      0% { transform: translateY(0); opacity: 0.2; }
-      50% { transform: translateY(-20px); opacity: 1; }
-      100% { transform: translateY(0); opacity: 0.2; }
+      color: white;
+      font-size: 1.5rem;
+      z-index: 3;
     }
   </style>
 </head>
 <body>
-  <!-- Flechas laterales -->
-  <img src="/tv/videos/backup/circunnaranja.png" class="flecha izquierda" alt="←">
-  <img src="/tv/videos/backup/circunnaranja.png" class="flecha derecha" alt="→">
-
-  <!-- Video -->
-  <video id="videoPlayer" playsinline autoplay muted></video>
-
+  <img id="backgroundImage" src="/tv/videos/backup/SDO.png" alt="Fondo" />
+  <video id="videoPlayer" muted autoplay playsinline preload="auto"></video>
+  <div id="fallback" style="display: none;">No se pudieron cargar videos programados.</div>
   <script src="main.js"></script>
 </body>
 </html>
