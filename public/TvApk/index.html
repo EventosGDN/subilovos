@@ -48,32 +48,33 @@
     }
 
     .acento-lateral {
-      position: absolute;
-      width: 30px;
-      height: 100%;
-      background-image: url('/tv/videos/backup/cintillo-acentos.png');
-      background-repeat: repeat-y;
-      background-size: cover;
-      background-position: center;
-      opacity: 0.8;
-      z-index: 1;
-      animation: moverVertical 12s linear infinite;
-      pointer-events: none;
-    }
+  position: absolute;
+  width: 30px;
+  height: 100%;
+  background-image: url('/tv/videos/backup/cintillo-acentos.png');
+  background-repeat: repeat-y;
+  background-size: 100% auto; /* no se deforma */
+  background-position-y: 0%;
+  opacity: 0.8;
+  z-index: 1;
+  animation: moverVertical 12s linear infinite;
+  pointer-events: none;
+}
 
-    .acento-lateral.izquierda {
-      left: 0;
-    }
+.acento-lateral.izquierda {
+  left: 0;
+}
 
-    .acento-lateral.derecha {
-      right: 0;
-      transform: scaleY(-1);
-    }
+.acento-lateral.derecha {
+  right: 0;
+  transform: scaleY(-1);
+}
 
-    @keyframes moverVertical {
-      0% { background-position-y: 100%; }
-      100% { background-position-y: 0%; }
-    }
+@keyframes moverVertical {
+  0% { background-position-y: 100%; }
+  100% { background-position-y: 0%; }
+}
+
   </style>
 </head>
 <body>
