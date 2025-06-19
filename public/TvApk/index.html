@@ -46,49 +46,12 @@
       font-size: 1.5rem;
       z-index: 3;
     }
-
-    .acento-lateral {
-      position: absolute;
-      width: 30px;
-      height: 100%;
-      background-image: url('/tv/videos/backup/cintillo-acentos.png');
-      background-repeat: repeat-y;
-      background-size: contain;
-      opacity: 0.8;
-      z-index: 1;
-      animation: moverVertical 6s linear infinite;
-      pointer-events: none;
-    }
-
-    .acento-lateral.izquierda {
-      left: 0;
-    }
-
-    .acento-lateral.derecha {
-      right: 0;
-      transform: scaleY(-1);
-    }
-
-    @keyframes moverVertical {
-      0% { background-position-y: 100%; }
-      100% { background-position-y: 0%; }
-    }
   </style>
 </head>
 <body>
-  <!-- Fondo original sin tocar -->
   <img id="backgroundImage" src="/tv/videos/backup/SDO.png" alt="Fondo" />
-
-  <!-- Cintillos animados -->
-  <div class="acento-lateral izquierda"></div>
-  <div class="acento-lateral derecha"></div>
-
-  <!-- Video -->
   <video id="videoPlayer" muted autoplay playsinline preload="auto"></video>
-
-  <!-- Fallback -->
   <div id="fallback" style="display: none;">No se pudieron cargar videos programados.</div>
-
   <script src="main.js"></script>
 </body>
 </html>
