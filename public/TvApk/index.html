@@ -53,7 +53,7 @@
   height: 100%;
   background-image: url('/tv/videos/backup/cintillo-acentos.png');
   background-repeat: repeat-y;
-  background-size: auto 100%; /* más alto que ancho */
+  background-size: auto 100%;
   opacity: 0.8;
   z-index: 1;
   animation: moverVertical 12s linear infinite;
@@ -62,13 +62,14 @@
 
 .acento-lateral.izquierda {
   left: 0;
-  background-position-x: left; /* contenido pegado al borde izquierdo */
+  transform: translateX(-670px); /* compensa el ancho y lo lleva hacia fuera */
+  background-position-x: right;
 }
 
 .acento-lateral.derecha {
   right: 0;
-  transform: scaleY(-1);
-  background-position-x: right; /* contenido pegado al borde derecho */
+  transform: translateX(670px) scaleY(-1); /* hacia afuera y reflejado */
+  background-position-x: left;
 }
 
 @keyframes moverVertical {
