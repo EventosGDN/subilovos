@@ -47,43 +47,40 @@
       z-index: 3;
     }
 
-  .acento-lateral {
-  position: absolute;
-  width: 30px;
-  height: 100%;
-  background-image: url('/tv/videos/backup/cintillo-acentos.png');
-  background-repeat: repeat-y;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.8;
-  z-index: 1;
-  animation: moverVertical 12s linear infinite;
-  pointer-events: none;
-}
+    .acento-lateral {
+      position: absolute;
+      width: 30px;
+      height: 100%;
+      background-image: url('/tv/videos/backup/cintillo-acentos.png');
+      background-repeat: repeat-y;
+      background-size: cover;
+      background-position: center;
+      opacity: 0.8;
+      z-index: 1;
+      animation: moverVertical 12s linear infinite;
+      pointer-events: none;
+    }
 
-.acento-lateral.izquierda {
-  left: 0;
-}
+    .acento-lateral.izquierda {
+      left: 0;
+    }
 
-.acento-lateral.derecha {
-  right: 0;
-  transform: scaleY(-1);
-}
+    .acento-lateral.derecha {
+      right: 0;
+      transform: scaleY(-1);
+    }
 
-
-@keyframes moverVertical {
-  0% { background-position-y: 100%; }
-  100% { background-position-y: 0%; }
-}
-
-</style>
-
+    @keyframes moverVertical {
+      0% { background-position-y: 100%; }
+      100% { background-position-y: 0%; }
+    }
+  </style>
 </head>
 <body>
-  <!-- Fondo original -->
+  <!-- Fondo original sin modificar -->
   <img id="backgroundImage" src="/tv/videos/backup/SDO.png" alt="Fondo" />
 
-  <!-- Cintillos animados a los costados -->
+  <!-- Cintillos animados en los laterales -->
   <div class="acento-lateral izquierda"></div>
   <div class="acento-lateral derecha"></div>
 
@@ -93,7 +90,7 @@
   <!-- Fallback -->
   <div id="fallback" style="display: none;">No se pudieron cargar videos programados.</div>
 
-  <!-- Lógica de reproducción -->
+  <!-- Lógica del reproductor -->
   <script src="main.js"></script>
 </body>
 </html>
