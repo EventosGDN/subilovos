@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SubiloVos TV</title>
+  <title>SubiloVos TV Apk</title>
   <meta name="theme-color" content="#000000" />
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      overflow: hidden;
       background: black;
       height: 100%;
       width: 100%;
+      overflow: hidden;
     }
 
     #backgroundImage {
@@ -34,6 +34,7 @@
       object-fit: contain;
       z-index: 2;
       background-color: transparent;
+      display: none;
     }
 
     #fallback {
@@ -44,50 +45,13 @@
       color: white;
       font-size: 1.5rem;
       z-index: 3;
-      display: none;
-    }
-
-    .accent {
-      position: absolute;
-      width: 40px;
-      height: 40px;
-      background-image: url("/tv/videos/backup/circunblanco.png");
-      background-size: contain;
-      background-repeat: no-repeat;
-      opacity: 0.5;
-      z-index: 4;
-    }
-
-    .left-accent {
-      left: 10px;
-      animation: subir 6s linear infinite;
-    }
-
-    .right-accent {
-      right: 10px;
-      animation: bajar 6s linear infinite;
-    }
-
-    @keyframes subir {
-      0% { top: 100%; }
-      100% { top: -40px; }
-    }
-
-    @keyframes bajar {
-      0% { top: -40px; }
-      100% { top: 100%; }
     }
   </style>
 </head>
 <body>
   <img id="backgroundImage" src="/tv/videos/backup/SDO.png" alt="Fondo" />
   <video id="videoPlayer" muted autoplay playsinline preload="auto"></video>
-  <div id="fallback">No se pudieron cargar videos programados.</div>
-
-  <!-- Acentos circunflejos -->
-  <div class="accent left-accent"></div>
-  <div class="accent right-accent"></div>
-
+  <div id="fallback" style="display: none;">No se pudieron cargar videos programados.</div>
   <script src="main.js"></script>
 </body>
 </html>
