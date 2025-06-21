@@ -20,20 +20,39 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const originalPath = req.file.path
   const compressedPath = 'uploads/compressed_' + req.file.filename
 
-  // TODO: Comprimir con ffmpeg acá
+  // Comprimir video con FFmpeg
+  ffmpeg(originalPath)
+    .outputOptions([
+      '-vcodec libx264',
+      '-crf 28',           // Nivel de compresión (más alto = más compresión)
+      '-preset veryfast'   // Velocidad del proceso (faster = menos calidad)
+    ])
+    .save(compressedPath)
+    .on('end', async () => {
+      const buffer = fs.readFileSync(compressedPath)
 
-  // De momento solo sube el original (luego cambiamos por compressedPath)
-  const fileBuffer = fs.readFileSync(originalPath)
-  const { error } = await supabase.storage
-    .from('videos')
-    .upload('temporales/' + req.file.filename, fileBuffer, {
-      contentType: 'video/mp4',
-      upsert: true
+      const { error } = await supabase.storage
+        .from('videos')
+        .upload('temporales/' + req.file.filename, buffer, {
+          contentType: 'video/mp4',
+          upsert: true
+        })
+
+      fs.unlinkSync(originalPath)
+      fs.unlinkSync(compressedPath)
+
+      if (error) {
+        console.error('Error al subir:', error)
+        return res.status(500).send('Error al subir a Supabase')
+      }
+
+      res.send('Video comprimido y subido con éxito')
     })
-
-  fs.unlinkSync(originalPath)
-  if (error) return res.status(500).send('Error al subir a Supabase')
-  res.send('Video subido correctamente')
+    .on('error', err => {
+      console.error('Error al comprimir:', err)
+      res.status(500).send('Error al comprimir el video')
+    })
 })
+
 
 app.listen(port, () => console.log(`Servidor en http://localhost:${port}`))
