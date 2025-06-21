@@ -1,3 +1,4 @@
+const ffmpegPath = require('ffmpeg-static')
 const express = require('express')
 const multer = require('multer')
 const { createClient } = require('@supabase/supabase-js')
@@ -21,7 +22,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const compressedPath = 'uploads/compressed_' + req.file.filename
 
   // Comprimir video con FFmpeg
-  ffmpeg(originalPath)
+  ffmpeg(originalPath).setFfmpegPath(ffmpegPath)
     .outputOptions([
       '-vcodec libx264',
       '-crf 28',           // Nivel de compresión (más alto = más compresión)
