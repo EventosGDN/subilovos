@@ -21,39 +21,44 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const originalPath = req.file.path
   const compressedPath = 'uploads/compressed_' + req.file.filename
 
-  // Comprimir video con FFmpeg
   ffmpeg(originalPath).setFfmpegPath(ffmpegPath)
     .outputOptions([
       '-vcodec libx264',
-      '-crf 28',           // Nivel de compresión (más alto = más compresión)
-      '-preset veryfast'   // Velocidad del proceso (faster = menos calidad)
+      '-crf 28',
+      '-preset veryfast'
     ])
     .save(compressedPath)
     .on('end', async () => {
-      const buffer = fs.readFileSync(compressedPath)
+      try {
+        const buffer = fs.readFileSync(compressedPath)
 
-      const { error } = await supabase.storage
-        .from('videos')
-        .upload('temporales/' + req.file.filename, buffer, {
-          contentType: 'video/mp4',
-          upsert: true
-        })
+        const filePath = 'temporales/' + req.file.filename
+        const { error } = await supabase.storage
+          .from('videos')
+          .upload(filePath, buffer, {
+            contentType: 'video/mp4',
+            upsert: true
+          })
 
-      fs.unlinkSync(originalPath)
-      fs.unlinkSync(compressedPath)
+        fs.unlinkSync(originalPath)
+        fs.unlinkSync(compressedPath)
 
-      if (error) {
-        console.error('Error al subir:', error)
-        return res.status(500).send('Error al subir a Supabase')
+        if (error) {
+          console.error('Error al subir:', error)
+          return res.status(500).send('Error al subir a Supabase')
+        }
+
+        const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
+        return res.json({ url: data.publicUrl })
+      } catch (err) {
+        console.error('Error inesperado:', err)
+        res.status(500).send('Error interno del servidor')
       }
-
-      res.send('Video comprimido y subido con éxito')
     })
     .on('error', err => {
       console.error('Error al comprimir:', err)
       res.status(500).send('Error al comprimir el video')
     })
 })
-
 
 app.listen(port, () => console.log(`Servidor en http://localhost:${port}`))

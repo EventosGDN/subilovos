@@ -133,27 +133,37 @@ uploadBtn.addEventListener('click', async () => {
     status.style.color = ''
   }
 
-  const cleanName = file.name.replace(/^temporales[\\/]/, '')
-  const filePath = `temporales/${Date.now()}_${cleanName}`
+  const formData = new FormData()
+  formData.append('video', file)
 
   try {
-    status.textContent = 'Subiendo...'
+    status.textContent = 'Subiendo y comprimiendo...'
     progressContainer.style.display = 'block'
     progressBar.style.width = '0%'
 
-    const { error: uploadErr } = await supabase.storage.from('videos').upload(filePath, file)
-    if (uploadErr) throw uploadErr
+    const response = await fetch('https://video-converter-5d8w.onrender.com/upload', {
+      method: 'POST',
+      body: formData
+    })
 
-    progressBar.style.width = '100%'
-    const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
-    const url = data.publicUrl
+    if (!response.ok) {
+      throw new Error(await response.text())
+    }
 
-    const { error: insertErr } = await supabase.from('videos').insert([
-      { name: file.name, url, start_date: start, end_date: end }
-    ])
+    // Supongamos que el backend devuelve la URL del video subido
+    const { url } = await response.json()
+
+    const { error: insertErr } = await supabase.from('videos').insert([{
+      name: file.name,
+      url,
+      start_date: start,
+      end_date: end
+    }])
+
     if (insertErr) throw insertErr
 
-    status.textContent = '✅ Video subido y registrado correctamente.'
+    progressBar.style.width = '100%'
+    status.textContent = '✅ Video comprimido y registrado correctamente.'
     status.classList.add('fade-out')
     setTimeout(() => status.classList.add('hide'), 3000)
     setTimeout(() => {
@@ -165,10 +175,12 @@ uploadBtn.addEventListener('click', async () => {
     progressContainer.style.display = 'none'
     fetchVideoList()
   } catch (err) {
+    console.error(err)
     status.textContent = `❌ Error: ${err.message}`
     progressContainer.style.display = 'none'
   }
 })
+
 
   cleanExpiredVideos()
   fetchVideoList()
