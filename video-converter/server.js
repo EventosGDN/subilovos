@@ -11,7 +11,8 @@ const fs = require('fs')
 const { createClient } = require('@supabase/supabase-js')
 
 const app = express()
-const port = process.env.PORT || 3000
+const port = process.env.PORT || 8080
+
 
 app.use(cors())
 console.log('🔥 CORS habilitado desde Railway')
@@ -64,4 +65,5 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     })
 })
 
-app.listen(port, () => console.log(`Servidor corriendo en http://localhost:${port}`))
+app.listen(port, () => console.log(`Servidor corriendo en puerto ${port}`))
+
