@@ -13,6 +13,8 @@ const fs = require('fs')
 const path = require('path')
 
 const app = express()
+const cors = require('cors')
+app.use(cors({ origin: 'https://subilovos.vercel.app' }))
 const port = process.env.PORT || 3000
 
 const storage = multer.diskStorage({
