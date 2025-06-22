@@ -1,3 +1,4 @@
+require('dotenv').config()
 const ffmpegPath = require('ffmpeg-static')
 const express = require('express')
 const multer = require('multer')
