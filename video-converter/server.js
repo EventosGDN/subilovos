@@ -1,3 +1,4 @@
+// Cargar .env en local
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
   require('dotenv').config({ path: './video-converter/.env' })
 }
@@ -13,11 +14,19 @@ const { createClient } = require('@supabase/supabase-js')
 const app = express()
 const port = process.env.PORT || 8080
 
+// 🔐 Configuración CORS precisa y explícita
+const corsOptions = {
+  origin: 'https://subilovos.vercel.app',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+  optionsSuccessStatus: 200
+}
 
-app.use(cors())
+app.use(cors(corsOptions))
+app.options('*', cors(corsOptions))
+console.log('🔥 CORS habilitado para Vercel')
 
-console.log('🔥 CORS habilitado desde Railway')
-
+// Si necesitas parsing JSON en otras rutas
 app.use(express.json())
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
@@ -54,7 +63,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         if (error) return res.status(500).send('Error al subir a Supabase')
 
         const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
-        res.json({ url: data.publicUrl })
+        return res.json({ url: data.publicUrl })
       } catch (err) {
         console.error('Error inesperado:', err)
         res.status(500).send('Error interno del servidor')
@@ -66,6 +75,6 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     })
 })
 
-app.listen(port, '0.0.0.0', () => console.log(`Servidor corriendo en puerto ${port}`))
-
-
+app.listen(port, '0.0.0.0', () =>
+  console.log(`🌐 Servidor escuchando en puerto ${port}`)
+)
