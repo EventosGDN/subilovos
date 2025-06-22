@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: subilovos
+    env: node
+    rootDir: video-converter
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
