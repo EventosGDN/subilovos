@@ -1,7 +1,7 @@
-if (process.env.NODE_ENV !== 'production') {
+// Cargar .env solo si las variables aún no están definidas (útil en local)
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
   require('dotenv').config({ path: './video-converter/.env' })
 }
-
 
 console.log('ENV:', process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
 const ffmpegPath = require('ffmpeg-static')
