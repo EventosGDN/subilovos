@@ -1,26 +1,22 @@
-// Cargar .env solo si las variables aún no están definidas (útil en local)
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
   require('dotenv').config({ path: './video-converter/.env' })
 }
 
-console.log('ENV:', process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
-
-const ffmpegPath = require('ffmpeg-static')
 const express = require('express')
-const cors = require('cors') // ✅ Importar cors
+const cors = require('cors')
 const multer = require('multer')
-const { createClient } = require('@supabase/supabase-js')
 const ffmpeg = require('fluent-ffmpeg')
+const ffmpegPath = require('ffmpeg-static')
 const fs = require('fs')
-const path = require('path')
+const { createClient } = require('@supabase/supabase-js')
 
 const app = express()
 const port = process.env.PORT || 3000
 
-// ✅ Habilitar CORS para Vercel
-/* app.use(cors({ origin: 'https://subilovos.vercel.app' })) */
-app.use(cors())
+app.use(cors()) // ✅ Permitir cualquier origen (solo para test)
+app.use(express.json())
 
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
 
 const storage = multer.diskStorage({
   destination: 'uploads/',
@@ -28,24 +24,19 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage })
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
-
 app.post('/upload', upload.single('video'), async (req, res) => {
   const originalPath = req.file.path
   const compressedPath = 'uploads/compressed_' + req.file.filename
 
-  ffmpeg(originalPath).setFfmpegPath(ffmpegPath)
-    .outputOptions([
-      '-vcodec libx264',
-      '-crf 28',
-      '-preset veryfast'
-    ])
+  ffmpeg(originalPath)
+    .setFfmpegPath(ffmpegPath)
+    .outputOptions(['-vcodec libx264', '-crf 28', '-preset veryfast'])
     .save(compressedPath)
     .on('end', async () => {
       try {
         const buffer = fs.readFileSync(compressedPath)
-
         const filePath = 'temporales/' + req.file.filename
+
         const { error } = await supabase.storage
           .from('videos')
           .upload(filePath, buffer, {
@@ -56,13 +47,10 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         fs.unlinkSync(originalPath)
         fs.unlinkSync(compressedPath)
 
-        if (error) {
-          console.error('Error al subir:', error)
-          return res.status(500).send('Error al subir a Supabase')
-        }
+        if (error) return res.status(500).send('Error al subir a Supabase')
 
         const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
-        return res.json({ url: data.publicUrl })
+        res.json({ url: data.publicUrl })
       } catch (err) {
         console.error('Error inesperado:', err)
         res.status(500).send('Error interno del servidor')
@@ -74,4 +62,4 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     })
 })
 
-app.listen(port, () => console.log(`Servidor en http://localhost:${port}`))
+app.listen(port, () => console.log(`Servidor corriendo en http://localhost:${port}`))
