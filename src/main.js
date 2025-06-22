@@ -141,7 +141,7 @@ uploadBtn.addEventListener('click', async () => {
     progressContainer.style.display = 'block'
     progressBar.style.width = '0%'
 
-    const response = await fetch('https://video-converter-5d8w.onrender.com/upload', {
+    const response = await fetch('https://video-converter.up.railway.app/upload', {
       method: 'POST',
       body: formData
     })
