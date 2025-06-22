@@ -15,6 +15,7 @@ const port = process.env.PORT || 8080
 
 
 app.use(cors())
+
 console.log('🔥 CORS habilitado desde Railway')
 
 app.use(express.json())
@@ -65,5 +66,6 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     })
 })
 
-app.listen(port, () => console.log(`Servidor corriendo en puerto ${port}`))
+app.listen(port, '0.0.0.0', () => console.log(`Servidor corriendo en puerto ${port}`))
+
 
