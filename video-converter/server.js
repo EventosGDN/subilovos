@@ -13,7 +13,9 @@ const { createClient } = require('@supabase/supabase-js')
 const app = express()
 const port = process.env.PORT || 3000
 
-app.use(cors()) // ✅ Permitir cualquier origen (solo para test)
+app.use(cors())
+console.log('🔥 CORS habilitado desde Railway')
+
 app.use(express.json())
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
