@@ -1,8 +1,7 @@
 services:
   - type: web
-    name: video-converter
+    name: subilovos
     env: node
-    plan: free
     rootDir: video-converter
     buildCommand: npm install
     startCommand: node server.js
