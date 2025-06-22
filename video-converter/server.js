@@ -4,8 +4,10 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
 }
 
 console.log('ENV:', process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
+
 const ffmpegPath = require('ffmpeg-static')
 const express = require('express')
+const cors = require('cors') // ✅ Importar cors
 const multer = require('multer')
 const { createClient } = require('@supabase/supabase-js')
 const ffmpeg = require('fluent-ffmpeg')
@@ -13,8 +15,10 @@ const fs = require('fs')
 const path = require('path')
 
 const app = express()
-
 const port = process.env.PORT || 3000
+
+// ✅ Habilitar CORS para Vercel
+app.use(cors({ origin: 'https://subilovos.vercel.app' }))
 
 const storage = multer.diskStorage({
   destination: 'uploads/',
