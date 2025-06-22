@@ -1,6 +1,7 @@
 if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config()
+  require('dotenv').config({ path: './video-converter/.env' })
 }
+
 
 console.log('ENV:', process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
 const ffmpegPath = require('ffmpeg-static')
