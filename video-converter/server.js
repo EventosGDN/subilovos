@@ -98,19 +98,21 @@ app.delete('/delete', express.json(), async (req, res) => {
   try {
     const path = `temporales/${name}`
 
+    // Borrar del Storage
     const { error: storageError } = await supabase.storage
       .from('videos')
       .remove([path])
 
     if (storageError) throw storageError
 
-    const publicUrl = `https://${process.env.SUPABASE_PROJECT}.supabase.co/storage/v1/object/public/videos/temporales/${name}`
+    // Generar la URL pública para buscar en la tabla
+    const publicUrl = `https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/${path}`
 
-const { error: dbError } = await supabase
-  .from('videos')
-  .delete()
-  .eq('url', publicUrl)
-
+    // Borrar de la tabla
+    const { error: dbError } = await supabase
+      .from('videos')
+      .delete()
+      .eq('url', publicUrl)
 
     if (dbError) throw dbError
 
@@ -120,6 +122,7 @@ const { error: dbError } = await supabase
     res.status(500).json({ error: err.message })
   }
 })
+
 
 
 
