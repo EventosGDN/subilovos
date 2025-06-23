@@ -91,15 +91,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let errores = []
 
-  for (const url of urls) {
-    try {
-      const response = await fetch('https://subilovos-production.up.railway.app/delete', {
-  method: 'DELETE',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({ name: cb.value })  // 👈 ahora mandás el nombre
-})
+  for (const name of files) {
+  try {
+    const response = await fetch('https://subilovos-production.up.railway.app/delete', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name })  // ✅ ahora usamos el valor real
+    })
+
 
 
       const result = await response.json()
