@@ -14,45 +14,50 @@ const cors = require('cors')
 ffmpeg.setFfmpegPath(ffmpegPath)
 
 const app = express()
-app.use(cors({
-  origin: 'https://subilovos.vercel.app',
-  methods: ['POST'],
-  credentials: false
-}))
-
+app.use(cors()) // ✅ habilita CORS para todo
 
 const port = process.env.PORT || 3000
 
+// Configuración de Multer
 const storage = multer.diskStorage({
   destination: 'uploads/',
   filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname),
 })
 const upload = multer({ storage })
 
+// Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 )
 
+// Ruta de test
 app.get('/', (req, res) => {
   res.send('🟢 Backend operativo')
 })
 
+// Ruta de subida
 app.post('/upload', upload.single('video'), async (req, res) => {
   const originalPath = req.file.path
   const filename = path.parse(req.file.filename).name
   const outputPath = `uploads/${filename}_converted.mp4`
 
   try {
+    // ✅ Conversión ffmpeg correcta
     await new Promise((resolve, reject) => {
       ffmpeg(originalPath)
-        .outputOptions('-c:v libx264', '-preset ultrafast', '-crf 28')
+        .outputOptions([
+          '-c:v', 'libx264',
+          '-preset', 'ultrafast',
+          '-crf', '28'
+        ])
         .output(outputPath)
         .on('end', resolve)
         .on('error', reject)
         .run()
     })
 
+    // Subida a Supabase
     const fileBuffer = fs.readFileSync(outputPath)
     const { data, error } = await supabase.storage
       .from('videos')
@@ -72,6 +77,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   }
 })
 
+// Inicio del servidor
 app.listen(port, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${port}`)
 })
