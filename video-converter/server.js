@@ -14,7 +14,9 @@ const cors = require('cors')
 ffmpeg.setFfmpegPath(ffmpegPath)
 
 const app = express()
-app.use(cors())
+app.use(cors({
+  origin: 'https://subilovos.vercel.app' // <--- CORS FIX
+}))
 
 const port = process.env.PORT || 3000
 
@@ -39,7 +41,6 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const outputPath = `uploads/${filename}_converted.mp4`
 
   try {
-    // Convertir video
     await new Promise((resolve, reject) => {
       ffmpeg(originalPath)
         .outputOptions('-c:v libx264', '-preset veryfast', '-crf 28')
@@ -49,7 +50,6 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         .run()
     })
 
-    // Subir a Supabase
     const fileBuffer = fs.readFileSync(outputPath)
     const { data, error } = await supabase.storage
       .from('videos')
@@ -57,9 +57,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         contentType: 'video/mp4',
       })
 
-    if (error) {
-      throw error
-    }
+    if (error) throw error
 
     res.status(200).json({ success: true, path: data.path })
   } catch (err) {
