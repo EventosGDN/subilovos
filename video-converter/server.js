@@ -1,4 +1,4 @@
-require('dotenv').config(); // carga variables .env local/prod
+require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
@@ -11,30 +11,28 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const port = process.env.PORT || 8080;
 
-// 🚧 Habilitar CORS desde cualquier origen (ajustar en producción)
-app.use(cors({
-  origin: ['https://subilovos.vercel.app', /\.vercel\.app$/],
-  methods: ['GET', 'POST', 'OPTIONS'],
-}));
+// CORS manual para permitir origenes externos (Vercel)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*'); // ¡Cambiar '*' por tu dominio en producción!
+  res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
-// Responder preflight OPTIONS para cualquier ruta
-app.options('*', cors());
-
-// Parse JSON
 app.use(express.json());
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// Multer setup
 const upload = multer({
   storage: multer.diskStorage({
     destination: 'uploads/',
-    filename: (req, file, cb) =>
-      cb(null, `${Date.now()}_${file.originalname}`)
+    filename: (req, file, cb) => cb(null, `${Date.now()}_${file.originalname}`)
   })
 });
 
-// Endpoint de subida
 app.post('/upload', upload.single('video'), (req, res) => {
   const originalPath = req.file.path;
   const compressedPath = `uploads/compressed_${req.file.filename}`;
@@ -58,7 +56,7 @@ app.post('/upload', upload.single('video'), (req, res) => {
         fs.unlinkSync(compressedPath);
 
         if (error) {
-          console.error('Supabase upload error:', error);
+          console.error('Supabase error:', error);
           return res.status(500).json({ error: 'Error al subir a Supabase' });
         }
 
@@ -66,28 +64,13 @@ app.post('/upload', upload.single('video'), (req, res) => {
         res.json({ url: data.publicUrl });
       } catch (e) {
         console.error('Error interno:', e);
-        res.status(500).json({ error: 'Error interno' });
+        res.status(500).json({ error: 'Error interno del servidor' });
       }
     })
     .on('error', err => {
-      console.error('Error en compresión:', err);
-      res.status(500).json({ error: 'Error comprimiendo video' });
+      console.error('FFmpeg error:', err);
+      res.status(500).json({ error: 'Error comprimiendo el video' });
     });
-});
-
-// Ruta de healthcheck para Railway/Verificación
-app.get('/healthz', (req, res) => res.sendStatus(200));
-
-// Error handler que agrega CORS a respuestas de error
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(500)
-    .set({
-      'Access-Control-Allow-Origin': req.headers.origin || '*',
-      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    })
-    .json({ error: 'Error no controlado' });
 });
 
 app.listen(port, () => console.log(`Servidor corriendo en puerto ${port}`));
