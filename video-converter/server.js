@@ -1,5 +1,3 @@
-app.get('/', (req, res) => res.send('✅ Backend vivo'))
-
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ path: './video-converter/.env' })
 }
@@ -13,8 +11,9 @@ const fs = require('fs')
 const path = require('path')
 const ffmpegPath = require('ffmpeg-static')
 
-const app = express()
-const port = process.env.PORT
+const app = express() // ← ahora está definido antes de usar
+
+const port = process.env.PORT || 8080
 
 // 👉 CORS antes de todo
 app.use(cors({
@@ -22,6 +21,9 @@ app.use(cors({
   methods: ['POST'],
   allowedHeaders: ['Content-Type']
 }))
+
+// 👉 Ruta de test para evitar el crash por 'app' indefinido
+app.get('/', (req, res) => res.send('✅ Backend vivo'))
 
 // 👉 Inicializa Supabase
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
@@ -51,7 +53,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     ffmpeg.setFfmpegPath(ffmpegPath)
 
     ffmpeg(inputPath)
-      .outputOptions('-movflags frag_keyframe+empty_moov') // para streaming inmediato
+      .outputOptions('-movflags frag_keyframe+empty_moov')
       .save(outputPath)
       .on('end', async () => {
         try {
