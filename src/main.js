@@ -85,30 +85,25 @@ document.addEventListener('DOMContentLoaded', () => {
   deleteBtn.addEventListener('click', async () => {
   const checked = [...videoList.querySelectorAll('input:checked')]
   const files = checked.map(cb => cb.value)
-  const urls = files.map(name =>
-    `https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/${name}`
-  )
 
   let errores = []
 
   for (const name of files) {
-  try {
-    const response = await fetch('https://subilovos-production.up.railway.app/delete', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ name })  // ✅ ahora usamos el valor real
-    })
-
-
+    try {
+      const response = await fetch('https://subilovos-production.up.railway.app/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name })  // 👈 ahora usamos correctamente "name"
+      })
 
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Error desconocido')
-      console.log(`✅ Borrado exitoso: ${url}`)
+      console.log(`✅ Borrado exitoso: ${name}`)
     } catch (err) {
-      console.error(`❌ Error al borrar ${url}:`, err)
-      errores.push(url)
+      console.error(`❌ Error al borrar ${name}:`, err)
+      errores.push(name)
     }
   }
 
@@ -126,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   fetchVideoList()
 })
+
 
 
   // Utilidad para convertir a UTC ISO string
