@@ -135,6 +135,9 @@ uploadBtn.addEventListener('click', async () => {
 
   const formData = new FormData()
   formData.append('video', file)
+formData.append('start', start)
+formData.append('end', end)
+
 
   try {
     status.textContent = 'Subiendo y comprimiendo...'
