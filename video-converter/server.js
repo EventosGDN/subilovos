@@ -93,26 +93,26 @@ app.post('/upload', upload.single('video'), async (req, res) => {
 app.delete('/delete', express.json(), async (req, res) => {
   const { name } = req.body
 
-  if (!name) return res.status(400).json({ error: 'Falta el nombre del archivo' })
+  if (!name) {
+    return res.status(400).json({ error: 'Falta el nombre del archivo' })
+  }
 
   try {
     const path = `temporales/${name}`
 
-    // Borrar del Storage
-    const { error: storageError } = await supabase.storage
+    // 1. Borrar del storage
+    const { error: storageError } = await supabase
+      .storage
       .from('videos')
       .remove([path])
 
     if (storageError) throw storageError
 
-    // Generar la URL pública para buscar en la tabla
-    const publicUrl = `https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/${path}`
-
-    // Borrar de la tabla
+    // 2. Buscar y borrar por coincidencia en URL
     const { error: dbError } = await supabase
       .from('videos')
       .delete()
-      .eq('url', publicUrl)
+      .ilike('url', `%${name}`)  // usa la parte final de la URL que incluye el nombre
 
     if (dbError) throw dbError
 
@@ -122,6 +122,7 @@ app.delete('/delete', express.json(), async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+
 
 
 
