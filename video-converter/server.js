@@ -104,10 +104,13 @@ app.delete('/delete', express.json(), async (req, res) => {
 
     if (storageError) throw storageError
 
-    const { error: dbError } = await supabase
-      .from('videos')
-      .delete()
-      .eq('name', name)
+    const publicUrl = `https://${process.env.SUPABASE_PROJECT}.supabase.co/storage/v1/object/public/videos/temporales/${name}`
+
+const { error: dbError } = await supabase
+  .from('videos')
+  .delete()
+  .eq('url', publicUrl)
+
 
     if (dbError) throw dbError
 
