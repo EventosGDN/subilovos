@@ -89,6 +89,35 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath)
   }
 })
+app.delete('/delete', express.json(), async (req, res) => {
+  const { url } = req.body
+
+  if (!url) return res.status(400).json({ error: 'Falta la URL del video a borrar' })
+
+  try {
+    // 1. Borrar del Storage
+    const storagePath = url.split('/storage/v1/object/public/videos/')[1]
+
+    const { error: storageError } = await supabase.storage
+      .from('videos')
+      .remove([storagePath])
+
+    if (storageError) throw storageError
+
+    // 2. Borrar de la tabla
+    const { error: dbError } = await supabase
+      .from('videos')
+      .delete()
+      .eq('url', url)
+
+    if (dbError) throw dbError
+
+    res.status(200).json({ message: '✅ Video borrado de storage y tabla' })
+  } catch (err) {
+    console.error('❌ Error al borrar:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
 
 // Iniciar servidor
 app.listen(port, () => {
