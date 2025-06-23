@@ -1,28 +1,23 @@
-// server.js
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ path: './video-converter/.env' })
 }
 
 const express = require('express')
 const cors = require('cors')
 const multer = require('multer')
-const ffmpeg = require('fluent-ffmpeg')
-const ffmpegPath = require('ffmpeg-static')
-const fs = require('fs')
 const { createClient } = require('@supabase/supabase-js')
+const ffmpeg = require('fluent-ffmpeg')
+const fs = require('fs')
+const path = require('path')
+const ffmpegPath = require('ffmpeg-static')
 
 const app = express()
 const port = process.env.PORT || 8080
 
-// CORS personalizado con origen específico
+// Habilita CORS SOLO para tu front
 app.use(cors({
-  origin: 'https://subilovos.vercel.app',
-  methods: ['POST'],
-  allowedHeaders: ['Content-Type']
+  origin: 'https://subilovos.vercel.app'
 }))
-console.log('🔥 CORS habilitado para subilovos.vercel.app')
-
-app.use(express.json())
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
 
@@ -33,41 +28,41 @@ const storage = multer.diskStorage({
 const upload = multer({ storage })
 
 app.post('/upload', upload.single('video'), async (req, res) => {
-  const originalPath = req.file.path
-  const compressedPath = 'uploads/compressed_' + req.file.filename
+  const { start, end } = req.body
+  const inputPath = req.file.path
+  const outputFilename = Date.now() + '_converted.mp4'
+  const outputPath = path.join('converted', outputFilename)
 
-  ffmpeg(originalPath)
-    .setFfmpegPath(ffmpegPath)
-    .outputOptions(['-vcodec libx264', '-crf 28', '-preset veryfast'])
-    .save(compressedPath)
+  ffmpeg.setFfmpegPath(ffmpegPath)
+
+  ffmpeg(inputPath)
+    .outputOptions('-movflags frag_keyframe+empty_moov') // necesario para streaming
+    .save(outputPath)
     .on('end', async () => {
-      try {
-        const buffer = fs.readFileSync(compressedPath)
-        const filePath = 'temporales/' + req.file.filename
+      const fileData = fs.readFileSync(outputPath)
+      const { data, error } = await supabase.storage
+        .from('videos')
+        .upload('temporales/' + outputFilename, fileData, {
+          contentType: 'video/mp4',
+          upsert: false
+        })
 
-        const { error } = await supabase.storage
-          .from('videos')
-          .upload(filePath, buffer, {
-            contentType: 'video/mp4',
-            upsert: true
-          })
+      fs.unlinkSync(inputPath)
+      fs.unlinkSync(outputPath)
 
-        fs.unlinkSync(originalPath)
-        fs.unlinkSync(compressedPath)
-
-        if (error) return res.status(500).send('Error al subir a Supabase')
-
-        const { data } = supabase.storage.from('videos').getPublicUrl(filePath)
-        res.json({ url: data.publicUrl })
-      } catch (err) {
-        console.error('Error inesperado:', err)
-        res.status(500).send('Error interno del servidor')
+      if (error) {
+        return res.status(500).json({ error: error.message })
       }
+
+      const publicURL = `https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/${outputFilename}`
+      return res.json({ url: publicURL, start, end })
     })
     .on('error', err => {
-      console.error('Error al comprimir:', err)
-      res.status(500).send('Error al comprimir el video')
+      fs.unlinkSync(inputPath)
+      return res.status(500).json({ error: err.message })
     })
 })
 
-app.listen(port, () => console.log(`Servidor corriendo en puerto ${port}`))
+app.listen(port, () => {
+  console.log(`Servidor corriendo en puerto ${port}`)
+})
