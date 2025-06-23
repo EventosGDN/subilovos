@@ -57,20 +57,29 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     })
 
     const fileBuffer = fs.readFileSync(outputPath)
-    const { data, error } = await supabase.storage
-      .from('videos')
-      .upload(`temporales/${Date.now()}_${path.basename(outputPath)}`, fileBuffer, {
-        contentType: 'video/mp4',
-      })
+    const videoPath = `temporales/${Date.now()}_${path.basename(outputPath)}`
 
-    if (error) throw error
+const { error: uploadError } = await supabase.storage
+  .from('videos')
+  .upload(videoPath, fileBuffer, {
+    contentType: 'video/mp4',
+  })
 
-    const publicUrl = supabase
-      .storage
-      .from('videos')
-      .getPublicUrl(data.path).publicUrl
+if (uploadError) throw uploadError
 
-    res.status(200).json({ url: publicUrl })
+const { data: publicData, error: publicUrlError } = supabase
+  .storage
+  .from('videos')
+  .getPublicUrl(videoPath)
+
+if (publicUrlError) throw publicUrlError
+
+const publicUrl = publicData.publicUrl
+
+console.log('✅ URL pública generada:', publicUrl)
+
+res.status(200).json({ url: publicUrl })
+
 
   } catch (err) {
     console.error('❌ Error al procesar/subir:', err)
