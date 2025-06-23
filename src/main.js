@@ -83,29 +83,48 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   deleteBtn.addEventListener('click', async () => {
-    const checked = [...videoList.querySelectorAll('input:checked')]
-    const files = checked.map(cb => `temporales/${cb.value}`)
-    const urls = checked.map(cb =>
-      `https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/${cb.value}`
-    )
+  const checked = [...videoList.querySelectorAll('input:checked')]
+  const files = checked.map(cb => cb.value)
+  const urls = files.map(name =>
+    `https://wqrkkkqmbrksleagqsli.supabase.co/storage/v1/object/public/videos/temporales/${name}`
+  )
 
-    const { error: storageErr } = await supabase.storage.from('videos').remove(files)
-    const { error: dbErr } = await supabase.from('videos').delete().in('url', urls)
+  let errores = []
 
-    if (!storageErr && !dbErr) {
-      deleteStatus.textContent = `${files.length} video(s) eliminados.`
-      deleteStatus.classList.add('fade-out')
-      setTimeout(() => deleteStatus.classList.add('hide'), 3000)
-      setTimeout(() => {
-        deleteStatus.textContent = ''
-        deleteStatus.classList.remove('fade-out', 'hide')
-      }, 4000)
-      fetchVideoList()
-    } else {
-      deleteStatus.textContent = 'Error al eliminar.'
-      console.error(storageErr || dbErr)
+  for (const url of urls) {
+    try {
+      const response = await fetch('https://subilovos-production.up.railway.app/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url })
+      })
+
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Error desconocido')
+      console.log(`✅ Borrado exitoso: ${url}`)
+    } catch (err) {
+      console.error(`❌ Error al borrar ${url}:`, err)
+      errores.push(url)
     }
-  })
+  }
+
+  if (errores.length === 0) {
+    deleteStatus.textContent = `${files.length} video(s) eliminados.`
+    deleteStatus.classList.add('fade-out')
+    setTimeout(() => deleteStatus.classList.add('hide'), 3000)
+    setTimeout(() => {
+      deleteStatus.textContent = ''
+      deleteStatus.classList.remove('fade-out', 'hide')
+    }, 4000)
+  } else {
+    deleteStatus.textContent = '❌ Error al borrar uno o más videos.'
+  }
+
+  fetchVideoList()
+})
+
 
   // Utilidad para convertir a UTC ISO string
 const toUTC = (dateStr, timeStr) => {
