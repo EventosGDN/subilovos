@@ -1,3 +1,5 @@
+app.get('/', (req, res) => res.send('✅ Backend vivo'))
+
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ path: './video-converter/.env' })
 }
@@ -12,7 +14,7 @@ const path = require('path')
 const ffmpegPath = require('ffmpeg-static')
 
 const app = express()
-const port = process.env.PORT || 8080
+const port = process.env.PORT
 
 // 👉 CORS antes de todo
 app.use(cors({
