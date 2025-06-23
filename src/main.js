@@ -164,10 +164,11 @@ formData.append('end', end)
       end_date: end
     }])
 
-    if (insertErr) throw insertErrif (insertErr) {
+    if (insertErr) {
   console.error('Error al insertar en la tabla videos:', insertErr)
   throw insertErr
 }
+
 
     progressBar.style.width = '100%'
     status.textContent = '✅ Video comprimido y registrado correctamente.'
