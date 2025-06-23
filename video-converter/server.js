@@ -46,7 +46,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   try {
     await new Promise((resolve, reject) => {
       ffmpeg(originalPath)
-        .outputOptions('-c:v libx264', '-preset veryfast', '-crf 28')
+        .outputOptions('-c:v libx264', '-preset ultrafast', '-crf 28')
         .output(outputPath)
         .on('end', resolve)
         .on('error', reject)
