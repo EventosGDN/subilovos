@@ -95,20 +95,20 @@ app.delete('/delete', express.json(), async (req, res) => {
   if (!url) return res.status(400).json({ error: 'Falta la URL del video a borrar' })
 
   try {
-    // 1. Borrar del Storage
     const storagePath = url.split('/storage/v1/object/public/videos/')[1]
 
+    // 1. Eliminar del Storage
     const { error: storageError } = await supabase.storage
       .from('videos')
       .remove([storagePath])
 
     if (storageError) throw storageError
 
-    // 2. Borrar de la tabla
+    // 2. Eliminar de la tabla (usa ilike por si hay codificación de espacios)
     const { error: dbError } = await supabase
       .from('videos')
       .delete()
-      .eq('url', url)
+      .ilike('url', `%${decodeURIComponent(storagePath)}`)
 
     if (dbError) throw dbError
 
@@ -118,6 +118,7 @@ app.delete('/delete', express.json(), async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+
 
 // Iniciar servidor
 app.listen(port, () => {
