@@ -94,12 +94,13 @@ document.addEventListener('DOMContentLoaded', () => {
   for (const url of urls) {
     try {
       const response = await fetch('https://subilovos-production.up.railway.app/delete', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ url })
-      })
+  method: 'DELETE',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ name: cb.value })  // 👈 ahora mandás el nombre
+})
+
 
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Error desconocido')

@@ -89,35 +89,35 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath)
   }
 })
-app.delete('/delete', express.json(), async (req, res) => {
-  const { url } = req.body
 
-  if (!url) return res.status(400).json({ error: 'Falta la URL del video a borrar' })
+app.delete('/delete', express.json(), async (req, res) => {
+  const { name } = req.body
+
+  if (!name) return res.status(400).json({ error: 'Falta el nombre del archivo' })
 
   try {
-    const storagePath = url.split('/storage/v1/object/public/videos/')[1]
+    const path = `temporales/${name}`
 
-    // 1. Eliminar del Storage
     const { error: storageError } = await supabase.storage
       .from('videos')
-      .remove([storagePath])
+      .remove([path])
 
     if (storageError) throw storageError
 
-    // 2. Eliminar de la tabla (usa ilike por si hay codificación de espacios)
     const { error: dbError } = await supabase
       .from('videos')
       .delete()
-      .ilike('url', `%${decodeURIComponent(storagePath)}`)
+      .eq('name', name)
 
     if (dbError) throw dbError
 
-    res.status(200).json({ message: '✅ Video borrado de storage y tabla' })
+    res.status(200).json({ message: '✅ Eliminado de storage y tabla' })
   } catch (err) {
     console.error('❌ Error al borrar:', err)
     res.status(500).json({ error: err.message })
   }
 })
+
 
 
 // Iniciar servidor
