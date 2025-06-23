@@ -144,7 +144,8 @@ formData.append('end', end)
     progressContainer.style.display = 'block'
     progressBar.style.width = '0%'
 
-    const response = await fetch('https://video-converter.up.railway.app/upload', {
+    const response = await fetch('https://subilovos-production.up.railway.app/upload', {
+
       method: 'POST',
       body: formData
     })
