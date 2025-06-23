@@ -67,7 +67,13 @@ app.post('/upload', upload.single('video'), async (req, res) => {
 
     if (error) throw error
 
-    res.status(200).json({ success: true, path: data.path })
+    const publicUrl = supabase
+  .storage
+  .from('videos')
+  .getPublicUrl(data.path).publicUrl
+
+res.status(200).json({ url: publicUrl })
+
   } catch (err) {
     console.error('❌ Error al procesar/subir:', err)
     res.status(500).json({ error: err.message || 'Error desconocido' })
