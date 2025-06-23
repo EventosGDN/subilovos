@@ -14,7 +14,7 @@ const cors = require('cors')
 ffmpeg.setFfmpegPath(ffmpegPath)
 
 const app = express()
-app.use(cors()) // ✅ habilita CORS para todo
+app.use(cors())
 
 const port = process.env.PORT || 3000
 
@@ -31,7 +31,7 @@ const supabase = createClient(
   process.env.SUPABASE_KEY
 )
 
-// Ruta de test
+// Ruta de prueba
 app.get('/', (req, res) => {
   res.send('🟢 Backend operativo')
 })
@@ -43,6 +43,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const outputPath = `uploads/${filename}_converted.mp4`
 
   try {
+    // Convertir video con ffmpeg
     await new Promise((resolve, reject) => {
       ffmpeg(originalPath)
         .outputOptions([
@@ -56,30 +57,29 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         .run()
     })
 
+    // Subir a Supabase Storage
     const fileBuffer = fs.readFileSync(outputPath)
     const videoPath = `temporales/${Date.now()}_${path.basename(outputPath)}`
 
-const { error: uploadError } = await supabase.storage
-  .from('videos')
-  .upload(videoPath, fileBuffer, {
-    contentType: 'video/mp4',
-  })
+    const { error: uploadError } = await supabase.storage
+      .from('videos')
+      .upload(videoPath, fileBuffer, {
+        contentType: 'video/mp4',
+      })
 
-if (uploadError) throw uploadError
+    if (uploadError) throw uploadError
 
-const { data: publicData, error: publicUrlError } = supabase
-  .storage
-  .from('videos')
-  .getPublicUrl(videoPath)
+    const { data: publicData, error: publicUrlError } = supabase
+      .storage
+      .from('videos')
+      .getPublicUrl(videoPath)
 
-if (publicUrlError) throw publicUrlError
+    if (publicUrlError) throw publicUrlError
 
-const publicUrl = publicData.publicUrl
+    const publicUrl = publicData.publicUrl
+    console.log('✅ URL pública generada:', publicUrl)
 
-console.log('✅ URL pública generada:', publicUrl)
-
-res.status(200).json({ url: publicUrl })
-
+    res.status(200).json({ url: publicUrl })
 
   } catch (err) {
     console.error('❌ Error al procesar/subir:', err)
@@ -90,7 +90,7 @@ res.status(200).json({ url: publicUrl })
   }
 })
 
-// Inicio del servidor
+// Iniciar servidor
 app.listen(port, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${port}`)
 })
