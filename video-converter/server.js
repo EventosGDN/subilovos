@@ -43,7 +43,6 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const outputPath = `uploads/${filename}_converted.mp4`
 
   try {
-    // ✅ Conversión ffmpeg correcta
     await new Promise((resolve, reject) => {
       ffmpeg(originalPath)
         .outputOptions([
@@ -57,7 +56,6 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         .run()
     })
 
-    // Subida a Supabase
     const fileBuffer = fs.readFileSync(outputPath)
     const { data, error } = await supabase.storage
       .from('videos')
@@ -68,11 +66,11 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     if (error) throw error
 
     const publicUrl = supabase
-  .storage
-  .from('videos')
-  .getPublicUrl(data.path).publicUrl
+      .storage
+      .from('videos')
+      .getPublicUrl(data.path).publicUrl
 
-res.status(200).json({ url: publicUrl })
+    res.status(200).json({ url: publicUrl })
 
   } catch (err) {
     console.error('❌ Error al procesar/subir:', err)
