@@ -15,7 +15,6 @@ ffmpeg.setFfmpegPath(ffmpegPath)
 
 const app = express()
 
-// CORS permitido para Vercel
 const corsOptions = {
   origin: 'https://subilovos.vercel.app',
   methods: ['GET', 'POST', 'DELETE'],
@@ -25,25 +24,25 @@ app.use(cors(corsOptions))
 
 const port = process.env.PORT || 3000
 
-// Configuración de Multer
+// Multer config
 const storage = multer.diskStorage({
   destination: 'uploads/',
   filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname),
 })
 const upload = multer({ storage })
 
-// Supabase
+// Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 )
 
-// Ruta de test
+// Test route
 app.get('/', (req, res) => {
   res.send('🟢 Backend operativo')
 })
 
-// Subida y registro de video
+// Upload endpoint
 app.post('/upload', upload.single('video'), async (req, res) => {
   const originalPath = req.file.path
   const filename = path.parse(req.file.filename).name
@@ -87,14 +86,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     const publicUrl = publicData.publicUrl
     console.log('✅ URL pública generada:', publicUrl)
 
-    await supabase.from('videos').insert([{
-      name: finalName,                     // 👈 clave para el borrado
-      url: publicUrl,
-      start_date: req.body.start,
-      end_date: req.body.end
-    }])
-
-    res.status(200).json({ url: publicUrl, name: finalName })
+    res.status(200).json({ url: publicUrl, finalName })  // 👈 ahora incluimos el nombre real generado
 
   } catch (err) {
     console.error('❌ Error general en /upload:', err)
@@ -105,7 +97,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   }
 })
 
-// Borrar video por name exacto
+// Delete endpoint
 app.delete('/delete', express.json(), async (req, res) => {
   const { name } = req.body
 
@@ -137,7 +129,7 @@ app.delete('/delete', express.json(), async (req, res) => {
   }
 })
 
-// Iniciar servidor
+// Start server
 app.listen(port, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${port}`)
 })
