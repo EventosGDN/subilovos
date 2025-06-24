@@ -15,7 +15,7 @@ ffmpeg.setFfmpegPath(ffmpegPath)
 
 const app = express()
 
-// ✅ Configuración de CORS
+// CORS permitido para Vercel
 const corsOptions = {
   origin: 'https://subilovos.vercel.app',
   methods: ['GET', 'POST', 'DELETE'],
@@ -25,25 +25,25 @@ app.use(cors(corsOptions))
 
 const port = process.env.PORT || 3000
 
-// 📁 Configuración de Multer para subida de archivos
+// Configuración de Multer
 const storage = multer.diskStorage({
   destination: 'uploads/',
   filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname),
 })
 const upload = multer({ storage })
 
-// 🔗 Cliente de Supabase
+// Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 )
 
-// 🧪 Ruta de prueba
+// Ruta de test
 app.get('/', (req, res) => {
   res.send('🟢 Backend operativo')
 })
 
-// 🔼 Subida y compresión de video
+// Subida y registro de video
 app.post('/upload', upload.single('video'), async (req, res) => {
   const originalPath = req.file.path
   const filename = path.parse(req.file.filename).name
@@ -64,7 +64,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     console.log('🎥 Video convertido:', outputPath)
 
     const fileBuffer = fs.readFileSync(outputPath)
-    const finalName = `${Date.now()}_${path.basename(outputPath)}`
+    const finalName = `${Date.now()}_${Date.now()}_${path.basename(outputPath)}`
     const videoPath = `temporales/${finalName}`
 
     console.log('🆙 Subiendo a Supabase Storage:', videoPath)
@@ -87,6 +87,13 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     const publicUrl = publicData.publicUrl
     console.log('✅ URL pública generada:', publicUrl)
 
+    await supabase.from('videos').insert([{
+      name: finalName,                     // 👈 clave para el borrado
+      url: publicUrl,
+      start_date: req.body.start,
+      end_date: req.body.end
+    }])
+
     res.status(200).json({ url: publicUrl, name: finalName })
 
   } catch (err) {
@@ -98,7 +105,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   }
 })
 
-// 🗑️ Borrar video por nombre
+// Borrar video por name exacto
 app.delete('/delete', express.json(), async (req, res) => {
   const { name } = req.body
 
@@ -109,7 +116,6 @@ app.delete('/delete', express.json(), async (req, res) => {
   try {
     const path = `temporales/${name}`
 
-    // Borrar del Storage
     const { error: storageError } = await supabase
       .storage
       .from('videos')
@@ -117,7 +123,6 @@ app.delete('/delete', express.json(), async (req, res) => {
 
     if (storageError) throw storageError
 
-    // Borrar de la tabla por name exacto
     const { error: dbError } = await supabase
       .from('videos')
       .delete()
@@ -132,7 +137,7 @@ app.delete('/delete', express.json(), async (req, res) => {
   }
 })
 
-// 🚀 Iniciar servidor
+// Iniciar servidor
 app.listen(port, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${port}`)
 })
