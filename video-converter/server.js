@@ -23,13 +23,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions))
 
-app.use(cors({
-  origin: 'https://subilovos.vercel.app',
-  methods: ['GET', 'POST', 'DELETE'],
-  allowedHeaders: ['Content-Type']
-}))
-
-
 const port = process.env.PORT || 3000
 
 // Configuración de Multer
