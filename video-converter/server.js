@@ -14,6 +14,15 @@ const cors = require('cors')
 ffmpeg.setFfmpegPath(ffmpegPath)
 
 const app = express()
+
+const corsOptions = {
+  origin: 'https://subilovos.vercel.app',
+  methods: ['GET', 'POST', 'DELETE'],
+  allowedHeaders: ['Content-Type'],
+}
+
+app.use(cors(corsOptions))
+
 app.use(cors({
   origin: 'https://subilovos.vercel.app',
   methods: ['GET', 'POST', 'DELETE'],
