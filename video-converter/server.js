@@ -15,7 +15,7 @@ ffmpeg.setFfmpegPath(ffmpegPath)
 
 const app = express()
 
-// ✅ CORS bien aplicado
+// ✅ Configuración de CORS
 const corsOptions = {
   origin: 'https://subilovos.vercel.app',
   methods: ['GET', 'POST', 'DELETE'],
@@ -25,31 +25,33 @@ app.use(cors(corsOptions))
 
 const port = process.env.PORT || 3000
 
-// 📦 Configuración de subida con Multer
+// 📁 Configuración de Multer para subida de archivos
 const storage = multer.diskStorage({
   destination: 'uploads/',
   filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname),
 })
 const upload = multer({ storage })
 
-// 🧠 Supabase init
+// 🔗 Cliente de Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 )
 
-// 🔍 Ruta simple de test
+// 🧪 Ruta de prueba
 app.get('/', (req, res) => {
   res.send('🟢 Backend operativo')
 })
 
-// 🎞️ Subida de video + compresión + subida a Supabase
+// 🔼 Subida y compresión de video
 app.post('/upload', upload.single('video'), async (req, res) => {
   const originalPath = req.file.path
   const filename = path.parse(req.file.filename).name
   const outputPath = `uploads/${filename}_converted.mp4`
 
   try {
+    console.log('📥 Iniciando proceso de subida:', originalPath)
+
     await new Promise((resolve, reject) => {
       ffmpeg(originalPath)
         .outputOptions(['-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28'])
@@ -59,9 +61,13 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         .run()
     })
 
+    console.log('🎥 Video convertido:', outputPath)
+
     const fileBuffer = fs.readFileSync(outputPath)
-    const finalName = `${Date.now()}_${path.basename(outputPath)}` // ✅ corregido
+    const finalName = `${Date.now()}_${path.basename(outputPath)}`
     const videoPath = `temporales/${finalName}`
+
+    console.log('🆙 Subiendo a Supabase Storage:', videoPath)
 
     const { error: uploadError } = await supabase.storage
       .from('videos')
@@ -84,7 +90,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     res.status(200).json({ url: publicUrl, name: finalName })
 
   } catch (err) {
-    console.error('❌ Error al procesar/subir:', err)
+    console.error('❌ Error general en /upload:', err)
     res.status(500).json({ error: err.message || 'Error desconocido' })
   } finally {
     fs.unlinkSync(originalPath)
@@ -92,8 +98,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   }
 })
 
-
-// 🗑️ Borrado por nombre (de Storage y tabla)
+// 🗑️ Borrar video por nombre
 app.delete('/delete', express.json(), async (req, res) => {
   const { name } = req.body
 
@@ -104,7 +109,7 @@ app.delete('/delete', express.json(), async (req, res) => {
   try {
     const path = `temporales/${name}`
 
-    // 1. Borrar del storage
+    // Borrar del Storage
     const { error: storageError } = await supabase
       .storage
       .from('videos')
@@ -112,7 +117,7 @@ app.delete('/delete', express.json(), async (req, res) => {
 
     if (storageError) throw storageError
 
-    // 2. Borrar por `name` exacto en la tabla (más confiable que `ilike`)
+    // Borrar de la tabla por name exacto
     const { error: dbError } = await supabase
       .from('videos')
       .delete()
@@ -127,7 +132,7 @@ app.delete('/delete', express.json(), async (req, res) => {
   }
 })
 
-// ▶️ Iniciar server
+// 🚀 Iniciar servidor
 app.listen(port, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${port}`)
 })
