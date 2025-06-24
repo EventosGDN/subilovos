@@ -50,7 +50,6 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const outputPath = `uploads/${filename}_converted.mp4`
 
   try {
-    // Convertir con FFmpeg
     await new Promise((resolve, reject) => {
       ffmpeg(originalPath)
         .outputOptions(['-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28'])
@@ -60,13 +59,11 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         .run()
     })
 
-    // Subir a Supabase Storage
-    const finalName = `${Date.now()}_${path.basename(outputPath)}`
-    const videoPath = `temporales/${finalName}`
     const fileBuffer = fs.readFileSync(outputPath)
+    const finalName = `${Date.now()}_${path.basename(outputPath)}` // ✅ corregido
+    const videoPath = `temporales/${finalName}`
 
-    const { error: uploadError } = await supabase
-      .storage
+    const { error: uploadError } = await supabase.storage
       .from('videos')
       .upload(videoPath, fileBuffer, {
         contentType: 'video/mp4',
@@ -84,7 +81,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     const publicUrl = publicData.publicUrl
     console.log('✅ URL pública generada:', publicUrl)
 
-    res.status(200).json({ url: publicUrl, name: finalName }) // opcionalmente devolvés el name
+    res.status(200).json({ url: publicUrl, name: finalName })
 
   } catch (err) {
     console.error('❌ Error al procesar/subir:', err)
@@ -94,6 +91,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath)
   }
 })
+
 
 // 🗑️ Borrado por nombre (de Storage y tabla)
 app.delete('/delete', express.json(), async (req, res) => {
