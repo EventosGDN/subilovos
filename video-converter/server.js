@@ -1,5 +1,4 @@
-// server.js funcional con CORS correcto y subida asincrónica
-
+// server.js
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ path: './video-converter/.env' })
 }
@@ -17,120 +16,81 @@ const fetch = require('node-fetch')
 ffmpeg.setFfmpegPath(ffmpegPath)
 
 const app = express()
+app.use(cors())
+
 const port = process.env.PORT || 3000
 
-// CORS universal
-app.use(cors())
-app.options('*', cors())
-
-// Multer
 const storage = multer.diskStorage({
   destination: 'uploads/',
   filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname),
 })
 const upload = multer({ storage })
 
-// Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 )
 
-// Test
 app.get('/', (req, res) => {
   res.send('🟢 Backend operativo')
 })
 
-// Subida asincrónica con compresión
 app.post('/upload', upload.single('video'), async (req, res) => {
-  const { start, end } = req.body
-  const file = req.file
-
-  if (!file) return res.status(400).send('No se recibió archivo.')
-  if (!start || !end) return res.status(400).send('Faltan fechas.')
-
-  const inputPath = file.path
-  const timestamp = Date.now()
-  const finalName = `${timestamp}_${file.originalname}`
-  const outputPath = `uploads/compressed_${finalName}`
-
-  const { data, error } = await supabase.storage
-    .from('videos')
-    .createSignedUploadUrl(`temporales/${finalName}`)
-
-  if (error || !data?.url || !data?.token) {
-    console.error('Error obteniendo URL firmada:', error)
-    return res.status(500).send('No se pudo generar URL de subida.')
-  }
-
-  const uploadUrl = data.url
-  const uploadToken = data.token
-
-  const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/videos/temporales/${finalName}`
-  res.json({ url: publicUrl, finalName })
-
-  ffmpeg(inputPath)
-    .outputOptions('-b:v 1000k')
-    .save(outputPath)
-    .on('end', async () => {
-      try {
-        const videoData = fs.readFileSync(outputPath)
-
-        await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${uploadToken}`,
-            'Content-Type': 'video/mp4'
-          },
-          body: videoData
-        })
-
-        await supabase.from('videos').update({ status: 'ready' }).eq('name', finalName)
-
-        fs.unlinkSync(inputPath)
-        fs.unlinkSync(outputPath)
-        console.log(`✅ Completado y subido: ${finalName}`)
-      } catch (e) {
-        console.error('❌ Error en la compresión o subida:', e)
-      }
-    })
-    .on('error', err => {
-      console.error('❌ FFMPEG error:', err)
-    })
-})
-
-// Borrado
-app.delete('/delete', express.json(), async (req, res) => {
-  const { name } = req.body
-
-  if (!name) {
-    return res.status(400).json({ error: 'Falta el nombre del archivo' })
-  }
-
   try {
-    const path = `temporales/${name}`
+    const { startDate, endDate } = req.body
+    const file = req.file
 
-    const { error: storageError } = await supabase
-      .storage
+    if (!file) {
+      return res.status(400).json({ error: 'No se proporcionó un archivo.' })
+    }
+
+    const outputPath = path.join('uploads', 'compressed_' + file.filename)
+
+    await new Promise((resolve, reject) => {
+      ffmpeg(file.path)
+        .videoCodec('libx264')
+        .size('?x720')
+        .outputOptions('-preset', 'ultrafast')
+        .on('end', resolve)
+        .on('error', reject)
+        .save(outputPath)
+    })
+
+    const videoBuffer = fs.readFileSync(outputPath)
+
+    const finalName = `${Date.now()}_${file.originalname}`
+    const { data, error } = await supabase.storage
       .from('videos')
-      .remove([path])
+      .upload(`temporales/${finalName}`, videoBuffer, {
+        contentType: file.mimetype,
+      })
 
-    if (storageError) throw storageError
+    if (error) {
+      throw error
+    }
 
-    const { error: dbError } = await supabase
-      .from('videos')
-      .delete()
-      .eq('name', name)
+    const { error: insertError } = await supabase.from('videos').insert([
+      {
+        url: `https://${process.env.SUPABASE_PROJECT}.supabase.co/storage/v1/object/public/videos/temporales/${finalName}`,
+        start_date: startDate,
+        end_date: endDate,
+      },
+    ])
 
-    if (dbError) throw dbError
+    if (insertError) {
+      throw insertError
+    }
 
-    res.status(200).json({ message: '✅ Eliminado de storage y tabla' })
+    fs.unlinkSync(file.path)
+    fs.unlinkSync(outputPath)
+
+    res.json({ message: 'Subida exitosa', finalName })
   } catch (err) {
-    console.error('❌ Error al borrar:', err)
+    console.error(err)
     res.status(500).json({ error: err.message })
   }
 })
 
 app.listen(port, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${port}`)
+  console.log(`Servidor corriendo en puerto ${port}`)
 })
