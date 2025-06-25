@@ -74,13 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     videoList.innerHTML = data?.length
-  ? data.map(item => `
-    <div class="video-item">
-      <input type="checkbox" value="${item.name}" />
-      <span class="video-name">${item.name}</span>
-    </div>`).join('')
-  : '<p>No hay videos disponibles.</p>'
-
+      ? data.map(item => `
+        <div class="video-item">
+          <input type="checkbox" value="${item.name}" />
+          ${item.name}
+        </div>`).join('')
+      : '<p>No hay videos disponibles.</p>'
   }
 
   deleteBtn.addEventListener('click', async () => {

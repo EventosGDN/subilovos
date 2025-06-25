@@ -8,16 +8,15 @@ const { createClient } = require('@supabase/supabase-js')
 const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
 const path = require('path')
-const cors = require('cors')
-const fetch = require('node-fetch') // 👈 IMPORTANTE
-
 const ffmpegPath = require('ffmpeg-static')
+const cors = require('cors')
+
 ffmpeg.setFfmpegPath(ffmpegPath)
 
 const app = express()
 const port = process.env.PORT || 3000
 
-// CORS
+// CORS completo
 const corsOptions = {
   origin: 'https://subilovos.vercel.app',
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
@@ -25,7 +24,7 @@ const corsOptions = {
   credentials: false,
 }
 app.use(cors(corsOptions))
-app.options('*', cors(corsOptions))
+app.options('*', cors(corsOptions)) // responde a preflight
 
 // Multer
 const storage = multer.diskStorage({
@@ -40,87 +39,117 @@ const supabase = createClient(
   process.env.SUPABASE_KEY
 )
 
-// Prueba
+// Test
 app.get('/', (req, res) => {
   res.send('🟢 Backend operativo')
 })
 
-// Upload con compresión en segundo plano
+// Subida
+// Upload endpoint (procesamiento en segundo plano)
 app.post('/upload', upload.single('video'), async (req, res) => {
-  const { start, end } = req.body
-  const file = req.file
+  const originalPath = req.file.path
+  const filename = path.parse(req.file.filename).name
+  const finalName = `${Date.now()}_${Date.now()}_${filename}_converted.mp4`
+  const videoPath = `temporales/${finalName}`
 
-  if (!file) return res.status(400).send('No se recibió archivo.')
-  if (!start || !end) return res.status(400).send('Faltan fechas.')
-
-  const inputPath = file.path
-  const timestamp = Date.now()
-  const finalName = `${timestamp}_${file.originalname}`
-  const outputPath = `uploads/compressed_${finalName}`
-
-  const { data, error } = await supabase.storage
+  // Insertamos registro en la tabla con estado 'processing'
+  const { data: insertData, error: insertError } = await supabase
     .from('videos')
-    .createSignedUploadUrl(`temporales/${finalName}`)
+    .insert([
+      {
+        name: finalName,
+        url: null,
+        start_date: req.body.start_date || null,
+        end_date: req.body.end_date || null,
+        status: 'processing',
+      },
+    ])
 
-  if (error || !data?.url || !data?.token) {
-    console.error('Error generando URL firmada:', error)
-    return res.status(500).send('No se pudo generar URL de subida.')
+  if (insertError) {
+    console.error('❌ Error al insertar registro inicial:', insertError)
+    return res.status(500).json({ error: 'Error al registrar video' })
   }
 
-  const uploadUrl = data.url
-  const uploadToken = data.token
-
   // Respuesta inmediata
-  const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/videos/temporales/${finalName}`
-  res.json({ url: publicUrl, finalName })
+  res.status(200).json({ message: '🟡 Video recibido y en procesamiento', finalName })
 
-  // Compresión y subida en segundo plano
-  ffmpeg(inputPath)
-    .outputOptions('-b:v 1000k')
-    .save(outputPath)
-    .on('end', async () => {
-      try {
-        const videoData = fs.readFileSync(outputPath)
+  // Procesamiento en segundo plano
+  try {
+    const outputPath = `uploads/${finalName}`
 
-        await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${uploadToken}`,
-            'Content-Type': 'video/mp4'
-          },
-          body: videoData
-        })
-
-        await supabase
-          .from('videos')
-          .update({ status: 'ready' })
-          .eq('name', finalName)
-
-        fs.unlinkSync(inputPath)
-        fs.unlinkSync(outputPath)
-
-        console.log(`✅ Completado: ${finalName}`)
-      } catch (e) {
-        console.error('❌ Error al subir/comprimir:', e)
-      }
+    await new Promise((resolve, reject) => {
+      ffmpeg(originalPath)
+        .outputOptions(['-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28'])
+        .output(outputPath)
+        .on('end', resolve)
+        .on('error', reject)
+        .run()
     })
-    .on('error', err => {
-      console.error('❌ FFMPEG error:', err)
-    })
+
+    const fileBuffer = fs.readFileSync(outputPath)
+
+    const { error: uploadError } = await supabase.storage
+      .from('videos')
+      .upload(videoPath, fileBuffer, {
+        contentType: 'video/mp4',
+      })
+
+    if (uploadError) throw uploadError
+
+    const { data: publicData, error: publicUrlError } = supabase
+      .storage
+      .from('videos')
+      .getPublicUrl(videoPath)
+
+    if (publicUrlError) throw publicUrlError
+
+    const publicUrl = publicData.publicUrl
+
+    // Actualizamos la tabla
+    const { error: updateError } = await supabase
+      .from('videos')
+      .update({ url: publicUrl, status: 'ready' })
+      .eq('name', finalName)
+
+    if (updateError) throw updateError
+
+    console.log('✅ Video listo y actualizado:', publicUrl)
+  } catch (err) {
+    console.error('❌ Error en procesamiento en segundo plano:', err)
+    await supabase
+      .from('videos')
+      .update({ status: 'failed' })
+      .eq('name', finalName)
+  } finally {
+    fs.unlinkSync(originalPath)
+    if (fs.existsSync(`uploads/${finalName}`)) fs.unlinkSync(`uploads/${finalName}`)
+  }
 })
+
 
 // Borrado
 app.delete('/delete', express.json(), async (req, res) => {
   const { name } = req.body
-  if (!name) return res.status(400).json({ error: 'Falta el nombre del archivo' })
+
+  if (!name) {
+    return res.status(400).json({ error: 'Falta el nombre del archivo' })
+  }
 
   try {
     const path = `temporales/${name}`
 
-    const { error: storageError } = await supabase.storage.from('videos').remove([path])
+    const { error: storageError } = await supabase
+      .storage
+      .from('videos')
+      .remove([path])
+
     if (storageError) throw storageError
 
-    const { error: dbError } = await supabase.from('videos').delete().eq('name', name)
+    const { error: dbError } = await supabase
+      .from('videos')
+      .delete()
+      .eq('name', name)
+
     if (dbError) throw dbError
 
     res.status(200).json({ message: '✅ Eliminado de storage y tabla' })
@@ -130,6 +159,7 @@ app.delete('/delete', express.json(), async (req, res) => {
   }
 })
 
+// Iniciar
 app.listen(port, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${port}`)
 })
