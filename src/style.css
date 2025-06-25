@@ -49,16 +49,18 @@ a:hover {
 .video-item {
   display: flex;
   align-items: flex-start;
-  margin: 5px 0;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 10px;
 }
 
 .video-item label {
   flex: 1 1 auto;
-  word-break: break-word;
+  overflow: visible;
+  text-overflow: unset;
   white-space: normal;
+  word-break: break-word;
 }
+
 
 
 h1 {
