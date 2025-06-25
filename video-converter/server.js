@@ -1,4 +1,4 @@
-// ✅ server.js funcional para Railway con compresión en segundo plano y CORS correcto
+// server.js funcional con CORS correcto y subida asincrónica
 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ path: './video-converter/.env' })
@@ -12,19 +12,16 @@ const fs = require('fs')
 const path = require('path')
 const ffmpegPath = require('ffmpeg-static')
 const cors = require('cors')
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args))
+const fetch = require('node-fetch')
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
 const app = express()
 const port = process.env.PORT || 3000
 
-// ✅ CORS bien configurado para Vercel
-app.use(cors({
-  origin: 'https://subilovos.vercel.app',
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
-}))
+// CORS universal
+app.use(cors())
+app.options('*', cors())
 
 // Multer
 const storage = multer.diskStorage({
@@ -44,7 +41,7 @@ app.get('/', (req, res) => {
   res.send('🟢 Backend operativo')
 })
 
-// Subida
+// Subida asincrónica con compresión
 app.post('/upload', upload.single('video'), async (req, res) => {
   const { start, end } = req.body
   const file = req.file
@@ -69,11 +66,9 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const uploadUrl = data.url
   const uploadToken = data.token
 
-  // 🔁 Enviar respuesta INMEDIATA
   const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/videos/temporales/${finalName}`
   res.json({ url: publicUrl, finalName })
 
-  // 🔧 Comprimir en segundo plano
   ffmpeg(inputPath)
     .outputOptions('-b:v 1000k')
     .save(outputPath)
@@ -90,15 +85,13 @@ app.post('/upload', upload.single('video'), async (req, res) => {
           body: videoData
         })
 
-        await supabase.from('videos')
-          .update({ status: 'ready' })
-          .eq('name', finalName)
+        await supabase.from('videos').update({ status: 'ready' }).eq('name', finalName)
 
         fs.unlinkSync(inputPath)
         fs.unlinkSync(outputPath)
         console.log(`✅ Completado y subido: ${finalName}`)
       } catch (e) {
-        console.error('❌ Error en compresión/subida:', e)
+        console.error('❌ Error en la compresión o subida:', e)
       }
     })
     .on('error', err => {
@@ -110,15 +103,25 @@ app.post('/upload', upload.single('video'), async (req, res) => {
 app.delete('/delete', express.json(), async (req, res) => {
   const { name } = req.body
 
-  if (!name) return res.status(400).json({ error: 'Falta el nombre del archivo' })
+  if (!name) {
+    return res.status(400).json({ error: 'Falta el nombre del archivo' })
+  }
 
   try {
     const path = `temporales/${name}`
 
-    const { error: storageError } = await supabase.storage.from('videos').remove([path])
+    const { error: storageError } = await supabase
+      .storage
+      .from('videos')
+      .remove([path])
+
     if (storageError) throw storageError
 
-    const { error: dbError } = await supabase.from('videos').delete().eq('name', name)
+    const { error: dbError } = await supabase
+      .from('videos')
+      .delete()
+      .eq('name', name)
+
     if (dbError) throw dbError
 
     res.status(200).json({ message: '✅ Eliminado de storage y tabla' })
@@ -128,7 +131,6 @@ app.delete('/delete', express.json(), async (req, res) => {
   }
 })
 
-// Iniciar
 app.listen(port, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${port}`)
 })
