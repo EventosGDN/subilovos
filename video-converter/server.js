@@ -14,35 +14,37 @@ const cors = require('cors')
 ffmpeg.setFfmpegPath(ffmpegPath)
 
 const app = express()
-
-const corsOptions = {
-  origin: 'https://subilovos.vercel.app',
-  methods: ['GET', 'POST', 'DELETE'],
-  allowedHeaders: ['Content-Type'],
-}
-app.use(cors(corsOptions))
-
 const port = process.env.PORT || 3000
 
-// Multer config
+// CORS completo
+const corsOptions = {
+  origin: 'https://subilovos.vercel.app',
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+  credentials: false,
+}
+app.use(cors(corsOptions))
+app.options('*', cors(corsOptions)) // responde a preflight
+
+// Multer
 const storage = multer.diskStorage({
   destination: 'uploads/',
   filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname),
 })
 const upload = multer({ storage })
 
-// Supabase client
+// Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 )
 
-// Test route
+// Test
 app.get('/', (req, res) => {
   res.send('🟢 Backend operativo')
 })
 
-// Upload endpoint
+// Subida
 app.post('/upload', upload.single('video'), async (req, res) => {
   const originalPath = req.file.path
   const filename = path.parse(req.file.filename).name
@@ -86,7 +88,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     const publicUrl = publicData.publicUrl
     console.log('✅ URL pública generada:', publicUrl)
 
-    res.status(200).json({ url: publicUrl, finalName })  // 👈 ahora incluimos el nombre real generado
+    res.status(200).json({ url: publicUrl, finalName })
 
   } catch (err) {
     console.error('❌ Error general en /upload:', err)
@@ -97,7 +99,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   }
 })
 
-// Delete endpoint
+// Borrado
 app.delete('/delete', express.json(), async (req, res) => {
   const { name } = req.body
 
@@ -129,8 +131,7 @@ app.delete('/delete', express.json(), async (req, res) => {
   }
 })
 
-// Start server
+// Iniciar
 app.listen(port, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${port}`)
 })
-// Trigger rebuild
