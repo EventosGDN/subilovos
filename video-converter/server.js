@@ -45,13 +45,37 @@ app.get('/', (req, res) => {
 })
 
 // Subida
+// Upload endpoint (procesamiento en segundo plano)
 app.post('/upload', upload.single('video'), async (req, res) => {
   const originalPath = req.file.path
   const filename = path.parse(req.file.filename).name
-  const outputPath = `uploads/${filename}_converted.mp4`
+  const finalName = `${Date.now()}_${Date.now()}_${filename}_converted.mp4`
+  const videoPath = `temporales/${finalName}`
 
+  // Insertamos registro en la tabla con estado 'processing'
+  const { data: insertData, error: insertError } = await supabase
+    .from('videos')
+    .insert([
+      {
+        name: finalName,
+        url: null,
+        start_date: req.body.start_date || null,
+        end_date: req.body.end_date || null,
+        status: 'processing',
+      },
+    ])
+
+  if (insertError) {
+    console.error('❌ Error al insertar registro inicial:', insertError)
+    return res.status(500).json({ error: 'Error al registrar video' })
+  }
+
+  // Respuesta inmediata
+  res.status(200).json({ message: '🟡 Video recibido y en procesamiento', finalName })
+
+  // Procesamiento en segundo plano
   try {
-    console.log('📥 Iniciando proceso de subida:', originalPath)
+    const outputPath = `uploads/${finalName}`
 
     await new Promise((resolve, reject) => {
       ffmpeg(originalPath)
@@ -62,13 +86,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         .run()
     })
 
-    console.log('🎥 Video convertido:', outputPath)
-
     const fileBuffer = fs.readFileSync(outputPath)
-    const finalName = `${Date.now()}_${Date.now()}_${path.basename(outputPath)}`
-    const videoPath = `temporales/${finalName}`
-
-    console.log('🆙 Subiendo a Supabase Storage:', videoPath)
 
     const { error: uploadError } = await supabase.storage
       .from('videos')
@@ -86,18 +104,28 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     if (publicUrlError) throw publicUrlError
 
     const publicUrl = publicData.publicUrl
-    console.log('✅ URL pública generada:', publicUrl)
 
-    res.status(200).json({ url: publicUrl, finalName })
+    // Actualizamos la tabla
+    const { error: updateError } = await supabase
+      .from('videos')
+      .update({ url: publicUrl, status: 'ready' })
+      .eq('name', finalName)
 
+    if (updateError) throw updateError
+
+    console.log('✅ Video listo y actualizado:', publicUrl)
   } catch (err) {
-    console.error('❌ Error general en /upload:', err)
-    res.status(500).json({ error: err.message || 'Error desconocido' })
+    console.error('❌ Error en procesamiento en segundo plano:', err)
+    await supabase
+      .from('videos')
+      .update({ status: 'failed' })
+      .eq('name', finalName)
   } finally {
     fs.unlinkSync(originalPath)
-    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath)
+    if (fs.existsSync(`uploads/${finalName}`)) fs.unlinkSync(`uploads/${finalName}`)
   }
 })
+
 
 // Borrado
 app.delete('/delete', express.json(), async (req, res) => {

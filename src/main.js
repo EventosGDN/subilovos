@@ -188,6 +188,33 @@ formData.append('end', end)
   throw insertErr
 }
 
+// Mostrar mensaje inicial
+const statusCheck = document.createElement('div')
+statusCheck.textContent = '⏳ Esperando que el video esté listo...'
+statusCheck.style.color = 'orange'
+status.parentNode.appendChild(statusCheck)
+
+// Chequear cada 5 segundos si el video está listo
+const interval = setInterval(async () => {
+  const { data, error } = await supabase
+    .from('videos')
+    .select('status')
+    .eq('name', finalName)
+
+  if (error) {
+    console.error('Error verificando estado:', error)
+    return
+  }
+
+  if (data && data[0]?.status === 'ready') {
+    clearInterval(interval)
+    statusCheck.textContent = '✅ Video procesado y listo para usar.'
+    statusCheck.style.color = 'green'
+    fetchVideoList()
+  }
+}, 5000)
+
+
 
     progressBar.style.width = '100%'
     status.textContent = '✅ Video comprimido y registrado correctamente.'
