@@ -7,49 +7,8 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/icon/192.png" />
   <meta name="theme-color" content="#3b82f6" />
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 0;
-      padding: 20px;
-      background-color: #f4f4f4;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-    }
-    #progressContainer {
-      width: 100%;
-      background: #ddd;
-      border-radius: 4px;
-      margin: 10px 0;
-    }
-    #progressBar {
-      height: 10px;
-      background: #3b82f6;
-      width: 0%;
-    }
-    .video-item {
-      display: flex;
-      align-items: center;
-      margin: 5px 0;
-    }
-    .video-item input {
-      margin-right: 10px;
-    }
-    #deleteBtn {
-      margin-top: 10px;
-      background: red;
-      color: white;
-      border: none;
-      padding: 10px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-  </style>
+  <link rel="stylesheet" href="/style.css">
+
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')

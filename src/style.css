@@ -22,13 +22,7 @@ a:hover {
   color: #535bf2;
 }
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
+
 
 h1 {
   font-size: 3.2em;
@@ -96,16 +90,6 @@ button:focus-visible {
 }
 
 
-body {
-  font-family: system-ui, sans-serif;
-  background-color: #f8f8f8;
-  margin: 0;
-  display: flex;
-  justify-content: center;
-  align-items: start;
-  min-height: 100vh;
-  padding: 2rem 1rem;
-}
 
 form {
   background: white;
@@ -215,4 +199,18 @@ button:hover {
 .datetime-group input[type="date"],
 .datetime-group input[type="time"] {
   flex: 1;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  background-color: #f8f8f8;
+  margin: 0;
+  padding: 2rem 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: start;
+  min-height: 100vh;
+  box-sizing: border-box;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
