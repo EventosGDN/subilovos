@@ -174,15 +174,6 @@ formData.append('end', end)
     // Supongamos que el backend devuelve la URL del video subido
     const { url, finalName } = await response.json()
 
-
-
-    const { error: insertErr } = await supabase.from('videos').insert([{
-      name: finalName,
-      url,
-      start_date: start,
-      end_date: end
-    }])
-
     if (insertErr) {
   console.error('Error al insertar en la tabla videos:', insertErr)
   throw insertErr
