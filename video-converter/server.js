@@ -10,6 +10,7 @@ const fs = require('fs')
 const path = require('path')
 const ffmpegPath = require('ffmpeg-static')
 const cors = require('cors')
+const fetch = require('node-fetch') // si no está, instalar con npm install node-fetch
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
@@ -24,7 +25,7 @@ const corsOptions = {
   credentials: false,
 }
 app.use(cors(corsOptions))
-app.options('*', cors(corsOptions)) // responde a preflight
+app.options('*', cors(corsOptions))
 
 // Multer
 const storage = multer.diskStorage({
@@ -45,7 +46,6 @@ app.get('/', (req, res) => {
 })
 
 // Subida
-// Upload endpoint (procesamiento en segundo plano)
 app.post('/upload', upload.single('video'), async (req, res) => {
   const { start, end } = req.body
   const file = req.file
@@ -70,11 +70,15 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const uploadUrl = data.url
   const uploadToken = data.token
 
-  // 👉 Enviar respuesta inmediata ANTES de comprimir
+  // Responder primero
   const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/videos/temporales/${finalName}`
   res.json({ url: publicUrl, finalName })
 
-  // ⏳ Comprimir y subir en segundo plano
+  // Procesar luego
+  procesarYSubir(inputPath, outputPath, uploadUrl, uploadToken, finalName)
+})
+
+function procesarYSubir(inputPath, outputPath, uploadUrl, uploadToken, finalName) {
   ffmpeg(inputPath)
     .outputOptions('-b:v 1000k')
     .save(outputPath)
@@ -91,8 +95,10 @@ app.post('/upload', upload.single('video'), async (req, res) => {
           body: videoData
         })
 
-        // ✅ Marca como listo
-        await supabase.from('videos').update({ status: 'ready' }).eq('name', finalName)
+        await supabase
+          .from('videos')
+          .update({ status: 'ready' })
+          .eq('name', finalName)
 
         fs.unlinkSync(inputPath)
         fs.unlinkSync(outputPath)
@@ -104,7 +110,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     .on('error', err => {
       console.error('❌ FFMPEG error:', err)
     })
-})
+}
 
 // Borrado
 app.delete('/delete', express.json(), async (req, res) => {
