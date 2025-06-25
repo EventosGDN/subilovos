@@ -58,10 +58,15 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const originalPath = file.path
   const cloudPath = `temporales/${finalName}`
 
+  const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/videos/${cloudPath}`
+
+  // Responder inmediatamente
+  res.json({ url: publicUrl, finalName })
+
   try {
     const videoData = fs.readFileSync(originalPath)
 
-    // Sube sin comprimir
+    // Subir el video original sin comprimir
     const { error: uploadError } = await supabase.storage
       .from('videos')
       .upload(cloudPath, videoData, {
@@ -71,9 +76,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
 
     if (uploadError) throw uploadError
 
-    const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/videos/${cloudPath}`
-
-    // Registra en la tabla con status "pending"
+    // Insertar registro en la tabla
     const { error: insertError } = await supabase
       .from('videos')
       .insert([{
@@ -86,9 +89,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
 
     if (insertError) throw insertError
 
-    res.json({ url: publicUrl, finalName })
-
-    // 👉 Comprime en segundo plano (sin bloquear el response)
+    // Comprimir en segundo plano
     const outputPath = `uploads/compressed_${finalName}`
 
     ffmpeg(originalPath)
@@ -122,7 +123,6 @@ app.post('/upload', upload.single('video'), async (req, res) => {
 
   } catch (e) {
     console.error('❌ Error general en /upload:', e)
-    res.status(500).send('Error al subir video.')
   }
 })
 
