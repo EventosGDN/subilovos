@@ -58,18 +58,6 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const finalName = `${timestamp}_${file.originalname}`
   const outputPath = `uploads/compressed_${finalName}`
 
-  const { data, error } = await supabase.storage
-    .from('videos')
-    .createSignedUploadUrl(`temporales/${finalName}`)
-
-  if (error || !data?.url || !data?.token) {
-    console.error('Error URL firmada:', error)
-    return res.status(500).send('No se pudo crear URL de subida.')
-  }
-
-  const uploadUrl = data.url
-  const uploadToken = data.token
-
   const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/videos/temporales/${finalName}`
   res.json({ url: publicUrl, finalName })
 
@@ -80,14 +68,16 @@ app.post('/upload', upload.single('video'), async (req, res) => {
       try {
         const videoData = fs.readFileSync(outputPath)
 
-        await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${uploadToken}`,
-            'Content-Type': 'video/mp4',
-          },
-          body: videoData,
-        })
+        const { error: uploadError } = await supabase.storage
+          .from('videos')
+          .upload(`temporales/${finalName}`, videoData, {
+            contentType: 'video/mp4',
+            upsert: true,
+          })
+
+        if (uploadError) {
+          throw uploadError
+        }
 
         await supabase
           .from('videos')
