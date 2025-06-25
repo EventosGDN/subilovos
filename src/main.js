@@ -174,10 +174,6 @@ formData.append('end', end)
     // Supongamos que el backend devuelve la URL del video subido
     const { url, finalName } = await response.json()
 
-    if (insertErr) {
-  console.error('Error al insertar en la tabla videos:', insertErr)
-  throw insertErr
-}
 
 // Mostrar mensaje inicial
 const statusCheck = document.createElement('div')
