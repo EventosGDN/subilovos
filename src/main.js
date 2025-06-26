@@ -70,6 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const start = toUTC(startDateDate.value, startDateTime.value)
     const end = toUTC(endDateDate.value, endDateTime.value)
 
+    if (!file || !file.name.endsWith('.mp4') || new Date(end) <= new Date(start)) {
+  status.textContent = 'Subí un archivo MP4 y completá correctamente los campos.'
+  return
+}
+
     if (!file || new Date(end) <= new Date(start)) {
       status.textContent = 'Completá correctamente todos los campos.'
       return
@@ -101,10 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
           end
         })
       })
-      if (!file || !file.name.endsWith('.mp4') || new Date(end) <= new Date(start)) {
-  status.textContent = 'Subí un archivo MP4 y completá correctamente los campos.'
-  return
-}
+      
 
       if (!backendRes.ok) {
   const text = await backendRes.text()
