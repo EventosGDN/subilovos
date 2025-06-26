@@ -174,12 +174,6 @@ const payload = JSON.stringify({
   body: 'Tu video se comprimió y cargó correctamente.',
 })
 
-for (const sub of subscriptions) {
-  webpush.sendNotification(sub, payload).catch(err => {
-    console.error('❌ Error al enviar push:', err)
-  })
-}
-
 
 let subscriptions = [] // Por ahora guardamos en memoria (podés luego guardar en Supabase)
 
@@ -194,3 +188,11 @@ app.post('/api/save-subscription', express.json(), (req, res) => {
   console.log('📥 Suscripción guardada:', subscription.endpoint)
   res.status(201).json({ message: 'Suscripción guardada' })
 })
+
+
+for (const sub of subscriptions) {
+  webpush.sendNotification(sub, payload).catch(err => {
+    console.error('❌ Error al enviar push:', err)
+  })
+}
+
