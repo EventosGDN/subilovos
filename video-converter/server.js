@@ -9,7 +9,6 @@ const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
 const path = require('path')
 const ffmpegPath = require('ffmpeg-static')
-const cors = require('cors')
 const fetch = require('node-fetch') // ⚠️ requerido en Railway
 
 ffmpeg.setFfmpegPath(ffmpegPath)
@@ -17,12 +16,6 @@ ffmpeg.setFfmpegPath(ffmpegPath)
 const app = express()
 const port = process.env.PORT || 3000
 
-// CORS
-const corsOptions = {
-  origin: 'https://subilovos.vercel.app',
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
-}
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://subilovos.vercel.app')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
