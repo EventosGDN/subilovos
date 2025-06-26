@@ -22,21 +22,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const today = new Date()
   const yyyyMMdd = today.toISOString().split('T')[0]
-
   startDateDate.value = yyyyMMdd
   startDateTime.value = '00:00'
   endDateDate.value = yyyyMMdd
   endDateTime.value = '23:59'
 
+  const toUTC = (dateStr, timeStr) => {
+    const local = new Date(`${dateStr}T${timeStr}`)
+    return new Date(local.getTime() - local.getTimezoneOffset() * 60000).toISOString()
+  }
+
   const cleanExpiredVideos = async () => {
     const now = new Date().toISOString()
     const { data: expired, error } = await supabase.from('videos').select('url').lt('end_date', now)
-
-    if (error) {
-      console.warn('Error al buscar vencidos:', error)
-      return
-    }
-
+    if (error) return console.warn('Error al buscar vencidos:', error)
     if (!expired || expired.length === 0) return
 
     const urls = expired.map(v => v.url)
@@ -61,13 +60,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     videoList.innerHTML = data?.length
-      ? data.map(item => `
-        <div class="video-item">
-          <input type="checkbox" value="${item.name}" />
-          ${item.name}
-        </div>`).join('')
+      ? data.map(item => `<div class="video-item">
+            <input type="checkbox" value="${item.name}" />
+            ${item.name}
+          </div>`).join('')
       : '<p>No hay videos disponibles.</p>'
   }
+
+  uploadBtn.addEventListener('click', async () => {
+    const fileInput = document.getElementById('videoInput')
+    const file = fileInput.files[0]
+    const start = toUTC(startDateDate.value, startDateTime.value)
+    const end = toUTC(endDateDate.value, endDateTime.value)
+
+    if (!file || !start || !end) {
+      status.textContent = 'Completá todos los campos.'
+      return
+    }
+
+    if (new Date(end) <= new Date(start)) {
+      status.innerHTML = '⚠️ La fecha y hora de fin debe ser posterior a la de inicio.'
+      status.style.color = 'orange'
+      return
+    } else {
+      status.style.color = ''
+    }
+
+    try {
+      status.textContent = 'Subiendo...'
+      progressContainer.style.display = 'block'
+      progressBar.style.width = '0%'
+
+      const formData = new FormData()
+      formData.append('video', file)
+      formData.append('start', start)
+      formData.append('end', end)
+
+      const res = await fetch('https://subilovos-production.up.railway.app/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Fallo al subir')
+
+      progressBar.style.width = '100%'
+      status.textContent = '✅ Video subido correctamente. Esperando compresión en segundo plano.'
+      status.classList.add('fade-out')
+      setTimeout(() => status.classList.add('hide'), 3000)
+      setTimeout(() => {
+        status.textContent = ''
+        status.classList.remove('fade-out', 'hide')
+      }, 4000)
+
+      fileInput.value = ''
+      progressContainer.style.display = 'none'
+      fetchVideoList()
+    } catch (err) {
+      console.error(err)
+      status.textContent = `❌ Error: ${err.message}`
+      progressContainer.style.display = 'none'
+    }
+  })
 
   deleteBtn.addEventListener('click', async () => {
     const checked = [...videoList.querySelectorAll('input:checked')]
@@ -103,133 +157,24 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchVideoList()
   })
 
-  const toUTC = (dateStr, timeStr) => {
-    const local = new Date(`${dateStr}T${timeStr}`)
-    return new Date(local.getTime() - local.getTimezoneOffset() * 60000).toISOString()
-  }
-
-  uploadBtn.addEventListener('click', async () => {
-    const fileInput = document.getElementById('videoInput')
-    const file = fileInput.files[0]
-
-    const start = toUTC(startDateDate.value, startDateTime.value)
-    const end = toUTC(endDateDate.value, endDateTime.value)
-
-    if (!file || !start || !end) {
-      status.textContent = 'Completá todos los campos.'
-      return
-    }
-
-    if (new Date(end) <= new Date(start)) {
-      status.innerHTML = '⚠️ La fecha y hora de fin debe ser posterior a la de inicio.'
-      status.style.color = 'orange'
-      return
-    } else {
-      status.style.color = ''
-    }
-
-    try {
-      status.textContent = 'Subiendo a Supabase...'
-      progressContainer.style.display = 'block'
-      progressBar.style.width = '0%'
-
-      const timestamp = Date.now()
-      const finalName = `${timestamp}_${file.name}`
-      const cloudPath = `temporales/${finalName}`
-
-      const { error: uploadError } = await supabase.storage.from('videos').upload(cloudPath, file, {
-        contentType: 'video/mp4',
-        upsert: true,
-      })
-
-      if (uploadError) throw uploadError
-
-      progressBar.style.width = '50%'
-      status.textContent = 'Notificando al backend...'
-
-      const res = await fetch('https://subilovos-production.up.railway.app/procesar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: finalName,
-          url: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/videos/${cloudPath}`,
-          start,
-          end
-        })
-      })
-
-      if (!res.ok) throw new Error('Error notificando al backend')
-
-      progressBar.style.width = '80%'
-      status.textContent = '⏳ Esperando que el video esté listo...'
-
-      const statusCheck = document.createElement('div')
-      statusCheck.textContent = '⏳ Procesando...'
-      statusCheck.style.color = 'orange'
-      status.parentNode.appendChild(statusCheck)
-
-      const interval = setInterval(async () => {
-        const { data, error } = await supabase.from('videos').select('status').eq('name', finalName)
-        if (error) {
-          console.error('Error verificando estado:', error)
-          return
-        }
-
-        if (data && data[0]) {
-          const estado = data[0].status
-          if (estado === 'ready') {
-            clearInterval(interval)
-            statusCheck.textContent = '✅ Video procesado y listo para usar.'
-            statusCheck.style.color = 'green'
-            fetchVideoList()
-          } else if (estado === 'pending') {
-            statusCheck.textContent = '⏳ Aún procesando...'
-            statusCheck.style.color = 'orange'
-          } else {
-            statusCheck.textContent = '❌ Fallo al procesar el video.'
-            statusCheck.style.color = 'red'
-            clearInterval(interval)
-          }
-        }
-      }, 5000)
-
-      progressBar.style.width = '100%'
-      status.textContent = '✅ Video subido y en procesamiento.'
-      status.classList.add('fade-out')
-      setTimeout(() => status.classList.add('hide'), 3000)
-      setTimeout(() => {
-        status.textContent = ''
-        status.classList.remove('fade-out', 'hide')
-      }, 4000)
-
-      fileInput.value = ''
-      progressContainer.style.display = 'none'
-    } catch (err) {
-      console.error(err)
-      status.textContent = `❌ Error: ${err.message}`
-      progressContainer.style.display = 'none'
-    }
-  })
-
   cleanExpiredVideos()
   fetchVideoList()
 })
 
 if ('serviceWorker' in navigator && 'PushManager' in window) {
-  navigator.serviceWorker.register('/sw.js')
-    .then(async (registration) => {
-      console.log('SW registrado')
-      const permission = await Notification.requestPermission()
-      if (permission === 'granted') {
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: import.meta.env.VITE_PUSH_PUBLIC_KEY,
-        })
-        await fetch('https://subilovos-production.up.railway.app/api/save-subscription', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(subscription),
-        })
-      }
-    })
+  navigator.serviceWorker.register('/sw.js').then(async (registration) => {
+    console.log('SW registrado')
+    const permission = await Notification.requestPermission()
+    if (permission === 'granted') {
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: import.meta.env.VITE_PUSH_PUBLIC_KEY,
+      })
+      await fetch('https://subilovos-production.up.railway.app/api/save-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subscription),
+      })
+    }
+  })
 }
