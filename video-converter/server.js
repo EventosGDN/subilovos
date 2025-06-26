@@ -16,6 +16,10 @@ ffmpeg.setFfmpegPath(ffmpegPath)
 const app = express()
 const port = process.env.PORT || 3000
 
+app.use(express.json({ limit: '100mb' }))
+app.use(express.urlencoded({ extended: true, limit: '100mb' }))
+
+
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://subilovos.vercel.app')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
