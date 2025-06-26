@@ -78,7 +78,11 @@
   </style>
 </head>
 <body>
-  <img id="backgroundImage" src="/tv/videos/backup/SDO.png" alt="Fondo" />
+  <img id="backgroundImage" src="" />
+<script>
+  document.getElementById('backgroundImage').src = location.origin + '/tv/videos/backup/SDO.png'
+</script>
+
   <div class="acento-lateral izquierda"></div>
 <div class="acento-lateral derecha"></div>
   <video id="videoPlayer" muted autoplay playsinline preload="auto"></video>
