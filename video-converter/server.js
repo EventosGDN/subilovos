@@ -9,7 +9,8 @@ const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
 const path = require('path')
 const ffmpegPath = require('ffmpeg-static')
-const fetch = require('node-fetch') // ⚠️ requerido en Railway
+const fetch = require('node-fetch')
+const webpush = require('web-push')
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
@@ -19,39 +20,47 @@ const port = process.env.PORT || 3000
 app.use(express.json({ limit: '100mb' }))
 app.use(express.urlencoded({ extended: true, limit: '100mb' }))
 
-
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://subilovos.vercel.app')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200)
-  }
+  if (req.method === 'OPTIONS') return res.sendStatus(200)
   next()
 })
 
-
-// Multer
 const storage = multer.diskStorage({
   destination: 'uploads/',
   filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname),
 })
 const upload = multer({ storage })
 
-// Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 )
 
-// Test
 app.get('/', (req, res) => {
   res.send('🟢 Backend operativo')
 })
 
-// Upload
-app.post('/upload', upload.single('video'), async (req, res) => {
+const subscriptions = []
 
+webpush.setVapidDetails(
+  'mailto:tu@email.com',
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+)
+
+app.post('/api/save-subscription', express.json(), (req, res) => {
+  const subscription = req.body
+  if (!subscription?.endpoint) {
+    return res.status(400).json({ error: 'Suscripción inválida' })
+  }
+  subscriptions.push(subscription)
+  res.status(201).json({ message: 'Suscripción guardada' })
+})
+
+app.post('/upload', upload.single('video'), async (req, res) => {
   const { start, end } = req.body
   const file = req.file
 
@@ -63,16 +72,13 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const finalName = `${timestamp}_${file.originalname}`
   const originalPath = file.path
   const cloudPath = `temporales/${finalName}`
-
   const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/videos/${cloudPath}`
 
-  // Responder inmediatamente
   res.json({ url: publicUrl, finalName })
 
   try {
     const videoData = fs.readFileSync(originalPath)
 
-    // Subir el video original sin comprimir
     const { error: uploadError } = await supabase.storage
       .from('videos')
       .upload(cloudPath, videoData, {
@@ -82,20 +88,14 @@ app.post('/upload', upload.single('video'), async (req, res) => {
 
     if (uploadError) throw uploadError
 
-    // Insertar registro en la tabla
-    const { error: insertError } = await supabase
-      .from('videos')
-      .insert([{
-        name: finalName,
-        url: publicUrl,
-        start_date: start,
-        end_date: end,
-        status: 'pending'
-      }])
+    await supabase.from('videos').insert([{
+      name: finalName,
+      url: publicUrl,
+      start_date: start,
+      end_date: end,
+      status: 'pending'
+    }])
 
-    if (insertError) throw insertError
-
-    // Comprimir en segundo plano
     const outputPath = `uploads/compressed_${finalName}`
 
     ffmpeg(originalPath)
@@ -105,22 +105,29 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         try {
           const compressedData = fs.readFileSync(outputPath)
 
-          await supabase.storage
-            .from('videos')
-            .update(cloudPath, compressedData, {
-              contentType: 'video/mp4'
-            })
+          await supabase.storage.from('videos').update(cloudPath, compressedData, {
+            contentType: 'video/mp4'
+          })
 
-          await supabase
-            .from('videos')
-            .update({ status: 'ready' })
-            .eq('name', finalName)
+          await supabase.from('videos').update({ status: 'ready' }).eq('name', finalName)
 
           fs.unlinkSync(originalPath)
           fs.unlinkSync(outputPath)
-          console.log(`✅ Comprimido y actualizado: ${finalName}`)
+
+          const payload = JSON.stringify({
+            title: '¡Video listo!',
+            body: 'Tu video se comprimió y cargó correctamente.'
+          })
+
+          for (const sub of subscriptions) {
+            webpush.sendNotification(sub, payload).catch(err => {
+              console.error('❌ Push error:', err)
+            })
+          }
+
+          console.log(`✅ Comprimido y notificado: ${finalName}`)
         } catch (err) {
-          console.error('❌ Error al reemplazar video comprimido:', err)
+          console.error('❌ Error post-compresión:', err)
         }
       })
       .on('error', err => {
@@ -128,33 +135,18 @@ app.post('/upload', upload.single('video'), async (req, res) => {
       })
 
   } catch (e) {
-    console.error('❌ Error general en /upload:', e)
+    console.error('❌ Error en /upload:', e)
   }
 })
 
-
-
-// Delete
 app.delete('/delete', express.json(), async (req, res) => {
   const { name } = req.body
   if (!name) return res.status(400).json({ error: 'Falta nombre' })
 
   try {
     const path = `temporales/${name}`
-
-    const { error: storageError } = await supabase.storage
-      .from('videos')
-      .remove([path])
-
-    if (storageError) throw storageError
-
-    const { error: dbError } = await supabase
-      .from('videos')
-      .delete()
-      .eq('name', name)
-
-    if (dbError) throw dbError
-
+    await supabase.storage.from('videos').remove([path])
+    await supabase.from('videos').delete().eq('name', name)
     res.status(200).json({ message: '✅ Eliminado' })
   } catch (err) {
     console.error('❌ Borrado error:', err)
@@ -162,45 +154,6 @@ app.delete('/delete', express.json(), async (req, res) => {
   }
 })
 
-// Start server
 app.listen(port, () => {
   console.log(`🚀 Servidor en http://localhost:${port}`)
 })
-console.log("🟢 Subilo Vos backend actualizado");
-
-const webpush = require('web-push')
-
-webpush.setVapidDetails(
-  'mailto:tu@email.com',
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-)
-
-// cuando termina de procesar el video:
-const payload = JSON.stringify({
-  title: '¡Video listo!',
-  body: 'Tu video se comprimió y cargó correctamente.',
-})
-
-
-let subscriptions = [] // Por ahora guardamos en memoria (podés luego guardar en Supabase)
-
-app.post('/api/save-subscription', express.json(), (req, res) => {
-  const subscription = req.body
-
-  if (!subscription || !subscription.endpoint) {
-    return res.status(400).json({ error: 'Suscripción inválida' })
-  }
-
-  subscriptions.push(subscription)
-  console.log('📥 Suscripción guardada:', subscription.endpoint)
-  res.status(201).json({ message: 'Suscripción guardada' })
-})
-
-
-for (const sub of subscriptions) {
-  webpush.sendNotification(sub, payload).catch(err => {
-    console.error('❌ Error al enviar push:', err)
-  })
-}
-
