@@ -46,14 +46,16 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     const cloudPath = `temporales/${finalName}`
 
     // Comprimir con ffmpeg
-    await new Promise((resolve, reject) => {
-      ffmpeg(originalPath)
-        .outputOptions('-preset veryfast', '-crf 28')
-        .output(outputPath)
-        .on('end', resolve)
-        .on('error', reject)
-        .run()
-    })
+    // Comprimir con ffmpeg
+await new Promise((resolve, reject) => {
+  ffmpeg(originalPath)
+    .outputOptions('-preset', 'veryfast', '-crf', '28')
+    .output(outputPath)
+    .on('end', resolve)
+    .on('error', reject)
+    .run()
+})
+
 
     // Leer archivo comprimido
     const fileBuffer = fs.readFileSync(outputPath)
