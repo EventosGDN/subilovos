@@ -3,82 +3,114 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const express = require('express')
-const cors = require('cors')
+const multer = require('multer')
 const { createClient } = require('@supabase/supabase-js')
+const ffmpeg = require('fluent-ffmpeg')
+const fs = require('fs')
+const path = require('path')
+const ffmpegPath = require('ffmpeg-static')
+const cors = require('cors')
+
+ffmpeg.setFfmpegPath(ffmpegPath)
+
 const app = express()
 const port = process.env.PORT || 3000
 
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '100mb' }))
+app.use(express.urlencoded({ extended: true, limit: '100mb' }))
 
+// Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 )
 
-// 🟢 Endpoint base para testeo
+// Multer config
+const storage = multer.diskStorage({
+  destination: 'uploads/',
+  filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname),
+})
+const upload = multer({ storage })
+
+// Endpoint raíz
 app.get('/', (req, res) => {
   res.send('🟢 Backend operativo')
 })
 
-// 🔵 Notificación del video subido
+// Procesar metadata después de upload desde frontend
 app.post('/procesar', async (req, res) => {
+  const { name, url, start, end } = req.body
+
+  if (!name || !url || !start || !end) {
+    return res.status(400).json({ error: 'Faltan datos' })
+  }
+
   try {
-    const { name, url, start, end } = req.body
-
-    if (!name || !url || !start || !end) {
-      return res.status(400).json({ error: 'Faltan datos obligatorios' })
-    }
-
-    const { error } = await supabase.from('videos').insert({
+    await supabase.from('videos').insert([{
       name,
       url,
       start_date: start,
       end_date: end,
-      status: 'ready' // Cambiar a 'pending' si luego hacés compresión
-    })
+      status: 'pending'
+    }])
 
-    if (error) {
-      console.error('Error al insertar en tabla videos:', error)
-      return res.status(500).json({ error: 'Error al registrar en base de datos' })
-    }
+    // Compresión y actualización
+    const originalPath = `uploads/${name}`
+    const outputPath = `uploads/compressed_${name}`
 
-    res.status(200).json({ message: 'Video registrado correctamente' })
+    ffmpeg(originalPath)
+      .outputOptions('-b:v 1000k')
+      .save(outputPath)
+      .on('end', async () => {
+        try {
+          const compressed = fs.readFileSync(outputPath)
+
+          await supabase.storage
+            .from('videos')
+            .update(`temporales/${name}`, compressed, {
+              contentType: 'video/mp4',
+            })
+
+          await supabase
+            .from('videos')
+            .update({ status: 'ready' })
+            .eq('name', name)
+
+          fs.unlinkSync(originalPath)
+          fs.unlinkSync(outputPath)
+
+          console.log(`✅ Video procesado: ${name}`)
+        } catch (err) {
+          console.error('❌ Error post-compresión:', err)
+        }
+      })
+      .on('error', err => {
+        console.error('❌ Error al comprimir:', err)
+      })
+
+    res.status(200).json({ message: 'Metadata cargada, comenzando compresión' })
   } catch (err) {
-    console.error('Error en /procesar:', err)
-    res.status(500).json({ error: 'Error en el servidor' })
+    console.error('❌ Error en /procesar:', err)
+    res.status(500).json({ error: 'Error al insertar metadata' })
   }
 })
 
-// 🔴 Borrar video (desde botón rojo en el frontend)
+// Eliminar video (tabla + storage)
 app.delete('/delete', async (req, res) => {
+  const { name } = req.body
+  if (!name) return res.status(400).json({ error: 'Falta el nombre' })
+
   try {
-    const { name } = req.body
-    if (!name) return res.status(400).json({ error: 'Nombre faltante' })
-
-    const path = `temporales/${name}`
-
-    const { error: storageError } = await supabase.storage
-      .from('videos')
-      .remove([path])
-
-    const { error: dbError } = await supabase
-      .from('videos')
-      .delete()
-      .eq('name', name)
-
-    if (storageError || dbError) {
-      console.error('Error al borrar:', storageError || dbError)
-      return res.status(500).json({ error: 'Error al borrar video' })
-    }
-
-    res.status(200).json({ message: 'Video eliminado correctamente' })
+    await supabase.storage.from('videos').remove([`temporales/${name}`])
+    await supabase.from('videos').delete().eq('name', name)
+    res.status(200).json({ message: '✅ Video eliminado' })
   } catch (err) {
-    console.error('Error en /delete:', err)
-    res.status(500).json({ error: 'Error del servidor al borrar' })
+    console.error('❌ Error al eliminar:', err)
+    res.status(500).json({ error: 'Error al eliminar video' })
   }
 })
 
 app.listen(port, () => {
-  console.log(`Servidor corriendo en http://localhost:${port}`)
+  console.log(`🚀 Servidor escuchando en http://localhost:${port}`)
 })
