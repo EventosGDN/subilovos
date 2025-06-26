@@ -74,8 +74,6 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   const cloudPath = `temporales/${finalName}`
   const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/videos/${cloudPath}`
 
-  res.json({ url: publicUrl, finalName })
-
   try {
     const videoData = fs.readFileSync(originalPath)
 
@@ -86,15 +84,25 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         upsert: true,
       })
 
-    if (uploadError) throw uploadError
+    if (uploadError) {
+      console.error('❌ Error subiendo a storage:', uploadError)
+      return res.status(500).json({ error: 'Error al subir el video.' })
+    }
 
-    await supabase.from('videos').insert([{
+    const { error: insertError } = await supabase.from('videos').insert([{
       name: finalName,
       url: publicUrl,
       start_date: start,
       end_date: end,
       status: 'pending'
     }])
+
+    if (insertError) {
+      console.error('❌ Error insertando en tabla:', insertError)
+      return res.status(500).json({ error: 'Error al insertar en tabla.' })
+    }
+
+    res.status(200).json({ url: publicUrl, finalName })
 
     const outputPath = `uploads/compressed_${finalName}`
 
