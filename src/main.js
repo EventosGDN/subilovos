@@ -84,10 +84,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const finalName = `${Date.now()}_${file.name}`
       const path = `temporales/${finalName}`
 
-      const { error: uploadError } = await supabase.storage.from('videos').upload(path, file, {
-        contentType: 'video/mp4', upsert: true
-      })
-      if (uploadError) throw uploadError
+      const formData = new FormData()
+formData.append('video', file)
+
+const uploadRes = await fetch('https://subilovos-production.up.railway.app/upload', {
+  method: 'POST',
+  body: formData
+})
+const uploadJson = await uploadRes.json()
+if (!uploadRes.ok) throw new Error(uploadJson.error || 'Error al subir')
+
+const finalName = uploadJson.finalName
+const path = `temporales/${finalName}`
+
 
       progressBar.style.width = '50%'
       status.textContent = 'Notificando al backend...'
