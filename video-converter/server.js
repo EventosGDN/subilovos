@@ -40,20 +40,34 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' })
 
-    const file = req.file
-    const finalName = file.filename
+    const originalPath = req.file.path
+    const finalName = req.file.filename.replace(/\.[^/.]+$/, '.mp4')
+    const outputPath = `uploads/compressed_${finalName}`
     const cloudPath = `temporales/${finalName}`
 
-    const fileBuffer = fs.readFileSync(file.path)
+    // Comprimir con ffmpeg
+    await new Promise((resolve, reject) => {
+      ffmpeg(originalPath)
+        .outputOptions('-preset veryfast', '-crf 28')
+        .output(outputPath)
+        .on('end', resolve)
+        .on('error', reject)
+        .run()
+    })
+
+    // Leer archivo comprimido
+    const fileBuffer = fs.readFileSync(outputPath)
 
     const { error: storageError } = await supabase.storage
       .from('videos')
       .upload(cloudPath, fileBuffer, {
         contentType: 'video/mp4',
-        upsert: true,
+        upsert: true
       })
 
-    fs.unlinkSync(file.path)
+    // Borrar archivos locales
+    fs.unlinkSync(originalPath)
+    fs.unlinkSync(outputPath)
 
     if (storageError) return res.status(500).json({ error: 'Error al subir a Supabase' })
 
