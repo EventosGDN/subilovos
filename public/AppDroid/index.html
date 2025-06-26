@@ -25,6 +25,35 @@
       z-index: 1;
     }
 
+    .acento-lateral {
+  position: absolute;
+  width: 30px;
+  height: 100%;
+  background-image: url('cintillo-acentos.png');
+  background-repeat: repeat-y;
+  background-size: 100% auto;
+  background-position: center top;
+  opacity: 0.8;
+  z-index: 1;
+  animation: moverVertical 10s linear infinite;
+  pointer-events: none;
+}
+
+.acento-lateral.izquierda {
+  left: 0;
+}
+
+.acento-lateral.derecha {
+  right: 0;
+  transform: scaleY(-1);
+}
+
+@keyframes moverVertical {
+  0% { background-position-y: 100%; }
+  100% { background-position-y: 0%; }
+}
+
+
     video {
       position: absolute;
       top: 0;
@@ -49,6 +78,8 @@
 </head>
 <body>
   <img id="backgroundImage" src="/tv/videos/backup/SDO.png" alt="Fondo" />
+  <div class="acento-lateral izquierda"></div>
+<div class="acento-lateral derecha"></div>
   <video id="videoPlayer" muted autoplay playsinline preload="auto"></video>
   <div id="fallback" style="display: none;">No se pudieron cargar videos programados.</div>
   <script src="main.js"></script>
