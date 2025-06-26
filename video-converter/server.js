@@ -45,11 +45,15 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     const outputPath = `uploads/compressed_${finalName}`
     const cloudPath = `temporales/${finalName}`
 
-    // Comprimir con ffmpeg
-    // Comprimir con ffmpeg
+// Comprimir con ffmpeg
 await new Promise((resolve, reject) => {
   ffmpeg(originalPath)
-    .outputOptions('-preset', 'veryfast', '-crf', '28')
+    .outputOptions([
+      '-preset', 'ultrafast',
+      '-crf', '32',
+      '-threads', '1',
+      '-movflags', '+faststart'
+    ])
     .output(outputPath)
     .on('end', resolve)
     .on('error', reject)
