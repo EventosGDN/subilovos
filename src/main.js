@@ -226,3 +226,27 @@ const interval = setInterval(async () => {
   cleanExpiredVideos()
   fetchVideoList()
 })
+
+
+if ('serviceWorker' in navigator && 'PushManager' in window) {
+  navigator.serviceWorker.register('/sw.js')
+    .then(async (registration) => {
+      console.log('SW registrado')
+
+      const permission = await Notification.requestPermission()
+      if (permission === 'granted') {
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: 'BG3Xg3YvF7zO42afrliwp9-pZfZvXwkHR94r33hVSfSuqcAkMnRer80JhAUV5xK9pVvbaQoWFqFdARI0OCoDjxc', // ahora te explico cómo generarla
+        })
+
+        // Enviar esta suscripción al backend para guardar
+        await fetch('https://subilovos-production.up.railway.app/api/save-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subscription),
+        })
+      }
+    })
+}
+

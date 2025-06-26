@@ -159,3 +159,38 @@ app.listen(port, () => {
   console.log(`🚀 Servidor en http://localhost:${port}`)
 })
 console.log("🟢 Subilo Vos backend actualizado");
+
+const webpush = require('web-push')
+
+webpush.setVapidDetails(
+  'mailto:tu@email.com',
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+)
+
+// cuando termina de procesar el video:
+const payload = JSON.stringify({
+  title: '¡Video listo!',
+  body: 'Tu video se comprimió y cargó correctamente.',
+})
+
+for (const sub of subscriptions) {
+  webpush.sendNotification(sub, payload).catch(err => {
+    console.error('❌ Error al enviar push:', err)
+  })
+}
+
+
+let subscriptions = [] // Por ahora guardamos en memoria (podés luego guardar en Supabase)
+
+app.post('/api/save-subscription', express.json(), (req, res) => {
+  const subscription = req.body
+
+  if (!subscription || !subscription.endpoint) {
+    return res.status(400).json({ error: 'Suscripción inválida' })
+  }
+
+  subscriptions.push(subscription)
+  console.log('📥 Suscripción guardada:', subscription.endpoint)
+  res.status(201).json({ message: 'Suscripción guardada' })
+})
