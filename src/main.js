@@ -81,8 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
       progressBar.style.width = '0%'
       status.textContent = 'Subiendo a Supabase...'
 
-      const finalName = `${Date.now()}_${file.name}`
-      const path = `temporales/${finalName}`
 
       const formData = new FormData()
 formData.append('video', file)
