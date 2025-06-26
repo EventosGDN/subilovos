@@ -75,10 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
   return
 }
 
-    if (!file || new Date(end) <= new Date(start)) {
-      status.textContent = 'Completá correctamente todos los campos.'
-      return
-    }
 
     try {
       progressContainer.style.display = 'block'
