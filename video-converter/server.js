@@ -69,6 +69,31 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   }
 })
 
+app.post('/procesar', async (req, res) => {
+  const { name, url, start, end } = req.body
+
+  if (!name || !url || !start || !end) {
+    return res.status(400).json({ error: 'Faltan datos' })
+  }
+
+  try {
+    const { error } = await supabase.from('videos').insert([
+      { name, url, start_date: start, end_date: end, status: 'ready' }
+    ])
+
+    if (error) {
+      console.error('Error al insertar en DB:', error)
+      return res.status(500).json({ error: 'Error al guardar en base de datos' })
+    }
+
+    return res.status(200).json({ message: 'Video registrado' })
+  } catch (err) {
+    console.error('Error procesando:', err)
+    return res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+
 app.listen(port, () => {
   console.log(`🟢 Servidor corriendo en puerto ${port}`)
 })
