@@ -46,6 +46,8 @@ app.get('/', (req, res) => {
 
 // Upload
 app.post('/upload', upload.single('video'), async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://subilovos.vercel.app')
+
   const { start, end } = req.body
   const file = req.file
 
@@ -125,6 +127,8 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     console.error('❌ Error general en /upload:', e)
   }
 })
+
+
 
 // Delete
 app.delete('/delete', express.json(), async (req, res) => {
