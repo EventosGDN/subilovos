@@ -1,4 +1,3 @@
-// main.js optimizado
 import { createClient } from '@supabase/supabase-js'
 import './style.css'
 
@@ -65,36 +64,47 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchVideoList()
   })
 
+  let isUploading = false
+
+  window.addEventListener('beforeunload', (e) => {
+    if (isUploading) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+  })
+
   uploadBtn.addEventListener('click', async () => {
     const file = document.getElementById('videoInput').files[0]
     const start = toUTC(startDateDate.value, startDateTime.value)
     const end = toUTC(endDateDate.value, endDateTime.value)
 
     if (!file || !file.name.endsWith('.mp4') || new Date(end) <= new Date(start)) {
-  status.textContent = 'Subí un archivo MP4 y completá correctamente los campos.'
-  return
-}
+      status.textContent = 'Subí un archivo MP4 y completá correctamente los campos.'
+      return
+    }
+
+    isUploading = true
+document.getElementById('status').classList.add('uploading')
+document.getElementById('uploadWarning').style.display = 'block'
 
 
     try {
       progressContainer.style.display = 'block'
       progressBar.style.width = '0%'
-      status.textContent = 'Subiendo a Supabase...'
-
+      status.textContent = 'Comprimiendo el video... Puede tardar varios minutos.'
 
       const formData = new FormData()
-formData.append('video', file)
+      formData.append('video', file)
 
-const uploadRes = await fetch('https://subilovos-production.up.railway.app/upload', {
-  method: 'POST',
-  body: formData
-})
-const uploadJson = await uploadRes.json()
-if (!uploadRes.ok) throw new Error(uploadJson.error || 'Error al subir')
+      const uploadRes = await fetch('https://subilovos-production.up.railway.app/upload', {
+        method: 'POST',
+        body: formData
+      })
+      const uploadJson = await uploadRes.json()
+      if (!uploadRes.ok) throw new Error(uploadJson.error || 'Error al subir')
 
-const finalName = uploadJson.finalName
-const path = `temporales/${finalName}`
-
+      const finalName = uploadJson.finalName
+      const path = `temporales/${finalName}`
 
       progressBar.style.width = '50%'
       status.textContent = 'Notificando al backend...'
@@ -109,13 +119,11 @@ const path = `temporales/${finalName}`
           end
         })
       })
-      
 
       if (!backendRes.ok) {
-  const text = await backendRes.text()
-  throw new Error(`Error notificando al backend: ${text.slice(0, 100)}`)
-}
-
+        const text = await backendRes.text()
+        throw new Error(`Error notificando al backend: ${text.slice(0, 100)}`)
+      }
 
       progressBar.style.width = '80%'
       status.textContent = 'Esperando procesamiento...'
@@ -133,6 +141,10 @@ const path = `temporales/${finalName}`
       status.textContent = `❌ Error: ${err.message}`
     } finally {
       setTimeout(() => progressContainer.style.display = 'none', 4000)
+      isUploading = false
+document.getElementById('status').classList.remove('uploading')
+document.getElementById('uploadWarning').style.display = 'none'
+
     }
   })
 
