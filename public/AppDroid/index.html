@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SubiloVos AppDroid</title>
+  <meta name="theme-color" content="#000000" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    #backgroundImage {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 2;
+      background-color: black;
+      display: none;
+    }
+
+    #fallback {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 1.5rem;
+      z-index: 3;
+    }
+  </style>
+</head>
+<body>
+  <img id="backgroundImage" src="/tv/videos/backup/SDO.png" alt="Fondo" />
+  <video id="videoPlayer" muted autoplay playsinline preload="auto"></video>
+  <div id="fallback" style="display: none;">No se pudieron cargar videos programados.</div>
+  <script src="main.js"></script>
+</body>
+</html>
