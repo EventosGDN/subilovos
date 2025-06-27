@@ -32,3 +32,4 @@ videoElement.addEventListener('ended', function () {
   videoElement.currentTime = 0
   videoElement.play()
 })
+// Versión actualizada - Forzar subida
