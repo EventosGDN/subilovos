@@ -1,35 +1,31 @@
 var videoElement = document.getElementById('videoPlayer')
 var fallback = document.getElementById('fallback')
 
-videoElement.muted = true
-videoElement.volume = 0
+// Configuración del video
+videoElement.muted = false
+videoElement.volume = 1.0
 videoElement.setAttribute('playsinline', '')
 videoElement.setAttribute('autoplay', '')
-videoElement.setAttribute('muted', 'true')
 
-var BACKUP_URL = 'https://subilovos.vercel.app/tv/videos/backup/Tomas%20asistente.mp4'
+var BACKUP_URL = location.origin + '/AppDroid/backup/Tomasasistente.mp4'
 
-function mostrarVideo() {
-  videoElement.style.display = 'block'
-}
 
+// Mostrar video de respaldo
 function mostrarBackup() {
   fallback.style.display = 'none'
-  videoElement.style.display = 'none'
+  videoElement.style.display = 'block'
   videoElement.src = BACKUP_URL
   videoElement.load()
 
   videoElement.onloadeddata = function () {
-    videoElement.play().then(mostrarVideo).catch(function () {
+    videoElement.play().catch(function () {
       fallback.style.display = 'block'
     })
   }
 }
 
-// Al iniciar la página
-document.addEventListener('DOMContentLoaded', function () {
-  mostrarBackup()
-})
+// Iniciar al cargar la página
+document.addEventListener('DOMContentLoaded', mostrarBackup)
 
 // Repetir en bucle
 videoElement.addEventListener('ended', function () {
