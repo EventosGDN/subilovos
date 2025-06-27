@@ -7,7 +7,7 @@ videoElement.setAttribute('playsinline', '')
 videoElement.setAttribute('autoplay', '')
 videoElement.setAttribute('muted', 'true')
 
-var BACKUP_URL = location.origin + '/tv/videos/backup/Tomas asistente.mp4'
+var BACKUP_URL = 'https://subilovos.vercel.app/tv/videos/backup/Tomas%20asistente.mp4'
 
 function mostrarVideo() {
   videoElement.style.display = 'block'
